@@ -89,6 +89,7 @@ agent_notif_port_callback(CFMessagePortRef local,
     cfMikroNotifPortName = CFStringCreateWithCString(kCFAllocatorDefault,
                                                      mikroNotifPortName,
                                                      kCFStringEncodingASCII);
+
     mikroNotifPort = CFMessagePortCreateLocal(kCFAllocatorDefault,
                                               cfMikroNotifPortName,
                                               (CFMessagePortCallBack)mikro_notif_port_callback,
@@ -106,6 +107,23 @@ getBootstrapPort()
 {
     return CFMessagePortCreateRemote(kCFAllocatorDefault,
                                      CFSTR(kMainPortName));
+}
+
+CFMessagePortRef
+createNotificationPort(char *name, CFMessagePortCallBack callout)
+{
+    Boolean     shouldFreeInfo;
+    CFStringRef cfName;
+
+    cfName = CFStringCreateWithCString(kCFAllocatorDefault,
+                                       name,
+                                       kCFStringEncodingASCII);
+
+    return CFMessagePortCreateLocal(kCFAllocatorDefault, 
+                                    cfName, 
+                                    callout, 
+                                    NULL, 
+                                    &shouldFreeInfo);
 }
 
 void
@@ -192,6 +210,7 @@ performHandshakeIteration(uint16_t portUid, uint16_t msgUid)
 {
     CFMessagePortRef bsPort;
     CFMessagePortRef reqPort;
+    CFMessagePortRef notifPort;
     char             reqPortName[kAgentRequestPortNameLen];
     char             notifPortName[kAgentNotificationPortNameLen];
 
@@ -202,20 +221,32 @@ performHandshakeIteration(uint16_t portUid, uint16_t msgUid)
         return;
     }
 
+    // Send the initial nonce and the uid
     sendNonceMsg(bsPort, gNonces[0]);
     sendUidMsg(bsPort, gNonces[1], portUid);
 
+    // Wait for the hardware agent to open the request port corresponding to the port and msg uid's
     sprintf(reqPortName, kAgentRequestPortNameFormat, portUid, msgUid);
     reqPort = waitForRequestPort(reqPortName);
     if (!reqPort) {
-        printf("Couldn't get request port: %s\n", reqPortName);
+        printf("Couldn't get request port\n");
         goto req_port_fail;
     }
 
+    // Create the notification port corresponding to the current port and msg uid's
     sprintf(notifPortName, kAgentNotificationPortNameFormat, portUid, msgUid);
+    notifPort = createNotificationPort(notifPortName, (CFMessagePortCallBack)agent_notif_port_callback);
+    if (!notifPort) {
+        printf("Couldn't create notification port\n");
+        goto notif_port_fail;
+    }
+
+    // Let the hardware agent know the name of our notification port and send the final nonce
     sendNameMsg(reqPort, gNonces[2], notifPortName);
     sendNonceMsg(reqPort, gNonces[3]);
 
+notif_port_fail:
+    CFRelease(reqPort);
 req_port_fail:
     CFRelease(bsPort);
 }
