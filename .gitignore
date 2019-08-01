@@ -4,7 +4,7 @@ NIClient/
 NIIPC
 *.txt
 caps/
-client
+client/client
 *.o
 jup/
 *.i64
@@ -19,3 +19,5 @@ ha/
 driver/
 app/
 notebooks/
+ipchook/*.dylib
+*.dylib
