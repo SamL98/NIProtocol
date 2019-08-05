@@ -903,6 +903,9 @@ static CFDataRef msgport_callout(CFMessagePortRef local,
                            *(uint32_t*)(dataPtr+8),
                            dataPtr+16);
     }
+    else {
+      LogWithFormat(false, "RECEIVED %d BYTES", dataLen);
+    }
   } 
   logMsg(data, "LOG_INCOMING", &inFile, &inOpened, kInFilename);
 
@@ -958,6 +961,7 @@ static SInt32 Hooked_CFMessagePortSendRequest(CFMessagePortRef remote,
     //LogWithFormat(false, "SENDING %d bytes; PORT %@", CFDataGetLength(data), (NSString *)CFMessagePortGetName(remote));
     size_t dataLen = (size_t)CFDataGetLength(data);
     uint8_t *dataPtr = (uint8_t *)CFDataGetBytePtr(data);
+	//LogWithFormat(false, "%@", (NSString*)CFMessagePortGetName(remote));
     if (dataLen == 25) {
       LogWithFormat(false, "==> %d 0x%08x %08x %s", 
                     *(uint32_t *)dataPtr,

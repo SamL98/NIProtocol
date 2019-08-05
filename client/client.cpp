@@ -1,18 +1,21 @@
 #include <CoreFoundation/CoreFoundation.h>
+#include "client.h"
+
 #define kMainPortName "NIHWMainHandler"
 #define kAgentNotificationPortNameFormat "NIHWS%04x%04dNotification"
 #define kAgentRequestPortNameFormat "NIHWS%04x%04dRequest"
-#define kMikroNotificationPortNameFormat "NIHWMaschineMikroMK2-%sNotification"
+#define kMikroNotificationPortNameFormat "NIHWMaschineMikroMK2-%sxxxxNotification"
 #define kSerialNumberLen 9
 #define kSerialNumberPacketDataLen 25
 #define kAgentNotificationPortNameLen 26
 #define kAgentRequestPortNameLen 21
-#define kMikroPortNameLen 36
+#define kMikroPortNameLen 46
 #define kNim2 0x4e694d32
 #define kPrmy 0x70726d79
 #define kTrue 0x74727565
 #define kStrt 0x73747274
 #define kInitMsgUid 40
+#define kNumHandshakeIter 8
 
 struct nonce_msg_t {
     uint32_t nonce;
@@ -31,13 +34,21 @@ struct port_uid_msg_t {
     uint32_t unk;
 } port_uid_msg;
 
-struct port_name_msg_t {
+struct __attribute__((packed)) port_name_msg_t {
     uint32_t nonce;
     uint32_t trueStr;
     uint32_t unk;
     uint32_t len;
-    char     *name;
+    char     name[kAgentNotificationPortNameLen];
 } port_name_msg;
+
+struct __attribute__((packed)) mk_port_name_msg_t {
+    uint32_t nonce;
+    uint32_t trueStr;
+    uint32_t unk;
+    uint32_t len;
+    char     name[kMikroPortNameLen];
+} mk_port_name_msg;
 
 struct serial_num_msg_t {
     uint32_t timestamp;
@@ -48,8 +59,16 @@ struct serial_num_msg_t {
 } serial_num_msg;
 
 
+char gReceivedSerial = 0;
 uint32_t gNonces[4] = {55797590, 54818048, 54543104, 54817091};
-uint16_t gPortUids[8] = {0x1300, 0x1140, 0x808, 0x1200, 0x1110, 0x1350, 0x1500, 0x1200};
+uint16_t gPortUids[kNumHandshakeIter] = {0x1300, 0x1140, 0x808, 0x1200, 0x1110, 0x1350, 0x1500, 0x1200};
+maschine_callback gUserDefinedCallback = NULL;
+
+void
+registerCallback(maschine_callback callback)
+{
+    gUserDefinedCallback = callback;
+}
 
 void
 mikro_notif_port_callback(CFMessagePortRef local,
@@ -63,43 +82,9 @@ mikro_notif_port_callback(CFMessagePortRef local,
     }
     
     printf("Received %ld bytes of data\n", (long)CFDataGetLength(data));
-}
 
-void
-agent_notif_port_callback(CFMessagePortRef local,
-                          SInt32 msgid,
-                          CFDataRef data,
-                          void *info)
-{
-    Boolean          shouldFreeInfo;
-    char             mikroNotifPortName[kMikroPortNameLen];
-    CFStringRef      cfMikroNotifPortName;
-    CFMessagePortRef mikroNotifPort;
-    
-    if (!data || CFDataGetLength(data) != kSerialNumberPacketDataLen) {
-        printf("Invalid data from hardware agent\n");
-        return;
-    }
-    
-    // Interpret the data as a serial message packet
-    serial_num_msg = *(struct serial_num_msg_t *)CFDataGetBytePtr(data);
-    
-    // Create the mikro notification port
-    sprintf(mikroNotifPortName, kMikroNotificationPortNameFormat, serial_num_msg.num);
-    cfMikroNotifPortName = CFStringCreateWithCString(kCFAllocatorDefault,
-                                                     mikroNotifPortName,
-                                                     kCFStringEncodingASCII);
-
-    mikroNotifPort = CFMessagePortCreateLocal(kCFAllocatorDefault,
-                                              cfMikroNotifPortName,
-                                              (CFMessagePortCallBack)mikro_notif_port_callback,
-                                              NULL,
-                                              &shouldFreeInfo);
-    if (!mikroNotifPort) {
-        printf("Couldn't create mikro notification port\n");
-        CFRelease(cfMikroNotifPortName);
-        return;
-    }
+    if (gUserDefinedCallback)
+        gUserDefinedCallback((uint32_t*)CFDataGetBytePtr(data), CFDataGetLength(data));
 }
 
 CFMessagePortRef
@@ -109,21 +94,15 @@ getBootstrapPort()
                                      CFSTR(kMainPortName));
 }
 
-CFMessagePortRef
-createNotificationPort(char *name, CFMessagePortCallBack callout)
+void
+invalidation_callback(CFMessagePortRef port, void *info)
 {
-    Boolean     shouldFreeInfo;
-    CFStringRef cfName;
+	CFStringRef portName = CFMessagePortGetName(port);
+	if (!portName)
+		return;
 
-    cfName = CFStringCreateWithCString(kCFAllocatorDefault,
-                                       name,
-                                       kCFStringEncodingASCII);
-
-    return CFMessagePortCreateLocal(kCFAllocatorDefault, 
-                                    cfName, 
-                                    callout, 
-                                    NULL, 
-                                    &shouldFreeInfo);
+	printf("%s invalidated\n", CFStringGetCStringPtr(portName, kCFStringEncodingASCII));
+	CFRelease(portName);
 }
 
 void
@@ -135,8 +114,7 @@ sendMsg(CFMessagePortRef port, uint8_t *msg, size_t size)
                            msg,
                            size);
                            
-    if (!msgData)
-    {
+    if (!msgData) {
         printf("Couldn't create message data\n");
         return;
     }
@@ -174,10 +152,92 @@ void
 sendNameMsg(CFMessagePortRef port, uint32_t nonce, char *name)
 {
     port_name_msg.nonce = nonce;
-    port_name_msg.name = name;
+	strncpy(port_name_msg.name, name, kAgentNotificationPortNameLen-1);
     port_name_msg.trueStr = kTrue;
     port_name_msg.unk = 0;
+    port_name_msg.len = kAgentNotificationPortNameLen;
     sendMsg(port, (uint8_t *)&port_name_msg, sizeof(port_name_msg));
+}
+
+void 
+sendMKNameMsg(CFMessagePortRef port, uint32_t nonce, char *name)
+{
+    mk_port_name_msg.nonce = nonce;
+    strncpy(mk_port_name_msg.name, name, kMikroPortNameLen - 1);
+    mk_port_name_msg.trueStr = kTrue;
+    mk_port_name_msg.unk = 0x30;
+    mk_port_name_msg.len = kMikroPortNameLen;
+    sendMsg(port, (uint8_t *)&mk_port_name_msg, sizeof(mk_port_name_msg));
+}
+
+CFMessagePortRef
+createNotificationPort(char *name, CFMessagePortCallBack callout)
+{
+    Boolean shouldFreeInfo;
+    CFStringRef cfName;
+
+    printf("Creating port %s\n", name);
+
+    cfName = CFStringCreateWithCString(kCFAllocatorDefault,
+                                       name,
+                                       kCFStringEncodingASCII);
+
+    return CFMessagePortCreateLocal(kCFAllocatorDefault,
+                                    cfName,
+                                    callout,
+                                    NULL,
+                                    &shouldFreeInfo);
+}
+
+void agent_notif_port_callback(CFMessagePortRef local,
+                               SInt32 msgid,
+                               CFDataRef data,
+                               void *info)
+{
+    Boolean shouldFreeInfo;
+    char mikroNotifPortName[kMikroPortNameLen];
+    CFStringRef cfAgentNotifPortName;
+    char *agentNotifPortName;
+    CFMessagePortRef mikroNotifPort;
+
+    if (!data || CFDataGetLength(data) != kSerialNumberPacketDataLen)
+    {
+        printf("Invalid data from hardware agent\n");
+        return;
+    }
+
+    cfAgentNotifPortName = CFMessagePortGetName(local);
+    if (!cfAgentNotifPortName)
+    {
+        printf("Couldn't get port name for agent notification port\n");
+        return;
+    }
+
+    gReceivedSerial = 1;
+    agentNotifPortName = (char *)CFStringGetCStringPtr(cfAgentNotifPortName,
+                                                       kCFStringEncodingASCII);
+
+    // Interpret the data as a serial message packet
+    serial_num_msg = *(struct serial_num_msg_t *)CFDataGetBytePtr(data);
+
+    // Create the mikro notification port
+    sprintf(mikroNotifPortName, kMikroNotificationPortNameFormat, serial_num_msg.num);
+
+    // This is extremely hacky and bad practice but I could've figure out how to pass
+    // the message uid as context when creating the message port.
+    memcpy(mikroNotifPortName + 29, agentNotifPortName + 9, 4);
+
+    mikroNotifPort = createNotificationPort(mikroNotifPortName,
+                                            (CFMessagePortCallBack)mikro_notif_port_callback);
+    if (!mikroNotifPort)
+    {
+        printf("Couldn't create mikro notification port\n");
+        CFRelease(cfMikroNotifPortName);
+        return;
+    }
+
+    CFMessagePortInvalidate(local);
+    CFMessagePortSetDispatchQueue(mikroNotifPort, dispatch_get_main_queue());
 }
 
 CFMessagePortRef
@@ -198,7 +258,7 @@ waitForRequestPort(char *name)
 
     while (!port && tries++ < max_tries) {
         port = CFMessagePortCreateRemote(kCFAllocatorDefault, cfName);
-        sleep(1);
+		if (!port) sleep(1);
     }
 
     CFRelease(cfName);
@@ -241,6 +301,11 @@ performHandshakeIteration(uint16_t portUid, uint16_t msgUid)
         goto notif_port_fail;
     }
 
+	CFMessagePortSetInvalidationCallBack(notifPort, 
+										 (CFMessagePortInvalidationCallBack)invalidation_callback);
+	CFMessagePortSetDispatchQueue(notifPort,
+								  dispatch_get_main_queue());
+
     // Let the hardware agent know the name of our notification port and send the final nonce
     sendNameMsg(reqPort, gNonces[2], notifPortName);
     sendNonceMsg(reqPort, gNonces[3]);
@@ -254,13 +319,18 @@ req_port_fail:
 void
 doHandshake()
 {
-    size_t   iter = 0;
     uint16_t msgUid = kInitMsgUid;
+    size_t   i;
 
-    performHandshakeIteration(gPortUids[iter], msgUid);
+    for (i=0; i<kNumHandshakeIter && !gReceivedSerial; i++) {
+        performHandshakeIteration(gPortUids[i], msgUid);
+        ++msgUid;
+    }
 }
 
 int main(int argc, const char * argv[]) {
     doHandshake();
+    while (1)
+        usleep(100);
     return 0;
 }
