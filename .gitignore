@@ -2,6 +2,8 @@
 HookCase/
 NIClient/
 NIIPC
+*.dSYM
+/*.dSYM/
 *.txt
 caps/
 client/client
