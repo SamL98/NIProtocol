@@ -7,6 +7,7 @@ NIIPC
 *.txt
 caps/
 client/client
+client/m2client
 *.o
 jup/
 *.i64
