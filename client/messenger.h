@@ -8,6 +8,9 @@
 #define kAgentNotificationPortNameLen 26
 #define kMikroNotificationPortNameLen 46
 #define kMikroRequestPortNameLen 41
+#define kNewProjLen 12
+#define kSelBtn 0x1
+#define kProjUid 0x800040
 
 struct nonce_msg_t {
     uint32_t nonce;
@@ -59,6 +62,21 @@ struct serial_num_msg_t {
     char     num[kSerialNumberLen];
 };
 
+struct __attribute__((packed)) new_proj_msg_t {
+	uint32_t nonce;
+	uint32_t unk1;
+	uint32_t unk2;
+	uint32_t len;
+	char 	 cmd[kNewProjLen];
+};
+
+struct proj_msg_t {
+	uint32_t nonce;
+	uint32_t sel_btn;
+	uint32_t unk;
+	uint32_t proj_uid;
+};
+
 extern char gReceivedSerial;
 extern struct nonce_msg_t nonce_msg;
 extern struct cmd_msg_t cmd_msg;
@@ -67,9 +85,14 @@ extern struct port_name_msg_t port_name_msg;
 extern struct mk_serial_msg_t mk_serial_msg;
 extern struct mk_port_name_msg_t mk_port_name_msg;
 extern struct serial_num_msg_t serial_num_msg;
+extern struct new_proj_msg_t new_proj_msg;
+extern struct proj_msg_t proj_msg;
 
 void sendNonceMsg(CFMessagePortRef port, uint32_t nonce);
 void sendUidMsg(CFMessagePortRef port, uint32_t nonce, uint16_t uid);
 void sendNameMsg(CFMessagePortRef port, uint32_t nonce, char *name);
 void sendMKSerialMsg(CFMessagePortRef port, uint32_t nonce, uint16_t uid);
 void sendMKNameMsg(CFMessagePortRef port, uint32_t nonce, char *name);
+void sendCmdMsg(CFMessagePortRef port, uint32_t nonce, uint32_t cmd);
+void sendNewProjMsg(CFMessagePortRef port, uint32_t nonce);
+void sendProjMsg(CFMessagePortRef port, uint32_t nonce);

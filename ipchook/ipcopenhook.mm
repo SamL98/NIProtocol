@@ -897,7 +897,7 @@ static CFDataRef msgport_callout(CFMessagePortRef local,
                            *(uint32_t*)(dataPtr+4),
                            dataPtr+20);
     }
-    else if (dataLen == 42 || dataLen == 62) {
+    else if (dataLen == 42 || dataLen == 62 || dataLen == 28) {
       LogWithFormat(false, "%d true %d %s",
                            *(uint32_t*)dataPtr,
                            *(uint32_t*)(dataPtr+8),
@@ -928,8 +928,8 @@ static CFMessagePortRef Hooked_CFMessagePortCreateLocal(CFAllocatorRef allocator
                                                         CFMessagePortContext *context,
                                                         Boolean *shouldFreeInfo)
 {
-  if (name)
-    LogWithFormat(false, "CREATING PORT %@", (NSString *)name);
+  // if (name)
+  //   LogWithFormat(false, "CREATING PORT %@", (NSString *)name);
 
   CFMessagePortRef outPort = CFMessagePortCreateLocal_caller(allocator,
                                                              name,

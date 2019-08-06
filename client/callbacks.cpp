@@ -17,8 +17,6 @@ createNotificationPort(char *name, CFMessagePortCallBack callout)
     Boolean shouldFreeInfo;
     CFStringRef cfName;
 
-    printf("Creating port %s\n", name);
-
     cfName = CFStringCreateWithCString(kCFAllocatorDefault,
                                        name,
                                        kCFStringEncodingASCII);

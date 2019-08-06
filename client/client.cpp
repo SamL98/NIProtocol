@@ -9,11 +9,16 @@
 #define kAgentRequestPortNameLen 21
 #define kInitMsgUid 40
 #define kNumHandshakeIter 8
-
+#define kNumRepRepNonce 4
 
 uint32_t gNonces[4] = {55797590, 54818048, 54543104, 54817091};
 uint32_t gSerialNonce = 54806784;
 uint32_t gSpecialEndNonce = 54749011;
+uint32_t gStartNonce = 54739712;
+uint32_t gNewProjNonce = 55145294;
+uint32_t gNullNonce = 55145300;
+uint32_t gProjNonce = 56914756;
+uint32_t gRepNonce = 57439488;
 uint16_t gPortUids[kNumHandshakeIter] = {0x1300, 0x1140, 0x808, 0x1200, 0x1110, 0x1350, 0x1500, 0x1200};
 
 CFMessagePortRef
@@ -178,6 +183,7 @@ req_port_fail:
 void
 doHandshake()
 {
+    CFMessagePortRef reqPort;
     uint16_t msgUid = kInitMsgUid;
     size_t   i;
 
@@ -186,6 +192,21 @@ doHandshake()
         if (i != kNumHandshakeIter-3)
             ++msgUid;
     }
+
+    reqPort = getRequestPort(0, msgUid-1, i-1);
+    if (!reqPort) {
+        printf("Couldn't get request port\n");
+        return;
+    }
+
+    sendNewProjMsg(reqPort, gNewProjNonce);
+    sendCmdMsg(reqPort, gStartNonce, kStrt);
+    sendNewProjMsg(reqPort, gNewProjNonce);
+    sendCmdMsg(reqPort, gNullNonce, 0);
+    // sendProjMsg(reqPort, gProjNonce);
+
+    // for (i=0; i<kNumRepRepNonce; i++)
+    //     sendCmdMsg(reqPort, gRepNonce, 22);
 }
 
 int main(int argc, const char * argv[]) {

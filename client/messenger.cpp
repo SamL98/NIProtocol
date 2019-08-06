@@ -8,6 +8,8 @@ struct port_name_msg_t port_name_msg = {};
 struct mk_serial_msg_t mk_serial_msg = {};
 struct mk_port_name_msg_t mk_port_name_msg = {};
 struct serial_num_msg_t serial_num_msg = {};
+struct new_proj_msg_t new_proj_msg = {};
+struct proj_msg_t proj_msg = {};
 
 void
 sendMsg(CFMessagePortRef port, uint8_t *msg, size_t size)
@@ -94,4 +96,33 @@ sendMKNameMsg(CFMessagePortRef port, uint32_t nonce, char *name)
     mk_port_name_msg.len = kMikroNotificationPortNameLen;
     strncpy(mk_port_name_msg.name, name, kMikroNotificationPortNameLen-1);
     sendMsg(port, (uint8_t *)&mk_port_name_msg, sizeof(mk_port_name_msg));
+}
+
+void
+sendCmdMsg(CFMessagePortRef port, uint32_t nonce, uint32_t cmd)
+{
+    cmd_msg.nonce = nonce;
+    cmd_msg.cmd = cmd;
+    sendMsg(port, (uint8_t *)&cmd_msg, sizeof(cmd_msg));
+}
+
+void 
+sendNewProjMsg(CFMessagePortRef port, uint32_t nonce)
+{
+    new_proj_msg.nonce = nonce;
+    new_proj_msg.unk1 = 0;
+    new_proj_msg.unk2 = 0;
+    new_proj_msg.len = kNewProjLen;
+    memcpy(new_proj_msg.cmd, "New Project", kNewProjLen-1);
+    sendMsg(port, (uint8_t*)&new_proj_msg, sizeof(new_proj_msg));
+}
+
+void 
+sendProjMsg(CFMessagePortRef port, uint32_t nonce)
+{
+    proj_msg.nonce = nonce;
+    proj_msg.sel_btn = kSelBtn;
+    proj_msg.unk = 0;
+    proj_msg.proj_uid = kProjUid;
+    sendMsg(port, (uint8_t*)&proj_msg, sizeof(proj_msg));
 }
