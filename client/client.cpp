@@ -180,12 +180,38 @@ req_port_fail:
     CFRelease(bsPort);
 }
 
+int
+getMsgData(char *dataPtr, char *fname, size_t len)
+{
+    FILE   *fp;
+    size_t bytesRead;
+
+    fp = fopen(fname, "r");
+    if (!fp) {
+        printf("Couldn't open %s\n", fname);
+        return 1;
+    }
+
+    bytesRead = fread(dataPtr, 1, len, fp);
+    if (bytesRead < len) {
+        printf("Could only read %lu bytes from %s\n", bytesRead, fname);
+        return 1;
+    }
+
+    return 0;
+}
+
 void
 doHandshake()
 {
     CFMessagePortRef reqPort;
     uint16_t msgUid = kInitMsgUid;
     size_t   i;
+    char     *nullProjData;
+    char     projData[kLenProjData];
+    char     repDataNull[kLenRepData];
+    char     repData[kLenRepData];
+    int      dataStatus;
 
     for (i=0; i<kNumHandshakeIter; i++) {
         performHandshakeIteration(gPortUids[i], msgUid, i);
@@ -199,19 +225,47 @@ doHandshake()
         return;
     }
 
-    sendNewProjMsg(reqPort, gNewProjNonce);
-    sendCmdMsg(reqPort, gStartNonce, kStrt);
-    sendNewProjMsg(reqPort, gNewProjNonce);
-    sendCmdMsg(reqPort, gNullNonce, 0);
-    // sendProjMsg(reqPort, gProjNonce);
+    nullProjData = (char*)calloc(kLenProjData, sizeof(char));
+    if (!nullProjData) {
+        printf("Couldn't allocate null project data\n");
+        return;
+    }
 
-    // for (i=0; i<kNumRepRepNonce; i++)
-    //     sendCmdMsg(reqPort, gRepNonce, 22);
+    dataStatus = getMsgData(projData, "proj_data.bin", kLenProjData);
+    if (dataStatus) {
+        printf("Couldn't get project data\n");
+        return;
+    }
+
+    dataStatus = getMsgData(repDataNull, "rep_data_null.bin", kLenRepData);
+    if (dataStatus) {
+        printf("Couldn't get null rep data\n");
+        return;
+    }
+
+    dataStatus = getMsgData(repData, "rep_data.bin", kLenRepData);
+    if (dataStatus) {
+        printf("Couldn't get rep data\n");
+        return;
+    }
+
+    //sendNewProjMsg(reqPort, gNewProjNonce);
+    sendCmdMsg(reqPort, gStartNonce, kStrt);
+    // sendNewProjMsg(reqPort, gNewProjNonce);
+    // sendCmdMsg(reqPort, gNullNonce, 0);
+    // sendProjMsg(reqPort, gProjNonce, nullProjData);
+
+    // for (i=0; i<3; i++)
+    //     sendRepMsg(reqPort, gRepNonce, repDataNull);
+
+    //sendRepMsg(reqPort, gRepNonce, repData);
+    sendProjMsg(reqPort, gProjNonce, projData);
+
+    free(nullProjData);
 }
 
 int main(int argc, const char * argv[]) {
     doHandshake();
-    while (1)
-        usleep(100);
+    CFRunLoopRun();
     return 0;
 }

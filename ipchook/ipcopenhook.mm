@@ -835,28 +835,40 @@ FILE *outFile = NULL;
 char inOpened = 0;
 char outOpened = 0;
 
-void logMsg(CFDataRef data, 
-            char *envvar, 
-            FILE **msgFile, 
-            char *opened, 
-            char *fname)
+// void logMsg(CFDataRef data, 
+//             char *envvar, 
+//             FILE **msgFile, 
+//             char *opened, 
+//             char *fname)
+void logMsg(void *context)
 {
-  if (!(*msgFile) && getenv(envvar))
+  CFDataRef data = (__bridge CFDataRef)context;
+  char shdWrite = 0;
+  FILE **msgFile = &inFile;
+  char *opened = &inOpened;
+  char fname[7] = "in.bin";
+
+  if (!(*msgFile))// && getenv(envvar))
   {
     if (!(*opened)) {
-      LogWithFormat(false, "Opening message file");
+      LogWithFormat(false, "Opening (w) message file");
       *msgFile = fopen(fname, "w");
       *opened = 1;
     }
-    else
+    else {
+      LogWithFormat(false, "Opening (a) message file");
       *msgFile = fopen(fname, "a");
+    }
 
     if (!(*msgFile))
       LogWithFormat(false, "Could not open message file");
+    else
+      shdWrite = 1;
   }
 
-  if ((*msgFile))
+  if (shdWrite && (*msgFile) && data && CFDataGetBytePtr(data) && CFDataGetLength(data) > 0 && CFDataGetBytePtr(data))
   {
+    LogWithFormat(false, "Writing to message file");
     fwrite(CFDataGetBytePtr(data), 1, CFDataGetLength(data), *msgFile);
     fwrite(delim, 1, 2, *msgFile);
     fclose(*msgFile);
@@ -905,9 +917,11 @@ static CFDataRef msgport_callout(CFMessagePortRef local,
     }
     else {
       LogWithFormat(false, "RECEIVED %d BYTES", dataLen);
+      //dispatch_async_f(dispatch_get_main_queue(), (__bridge void *)data, logMsg);
     }
   } 
-  logMsg(data, "LOG_INCOMING", &inFile, &inOpened, kInFilename);
+
+  //logMsg(data, "LOG_INCOMING", &inFile, &inOpened, kInFilename);
 
   msgport_callout_caller caller = (msgport_callout_caller)get_dynamic_caller(reinterpret_cast<void*>(msgport_callout));
   CFDataRef outData = caller(local, msgid, data, info);
@@ -928,8 +942,8 @@ static CFMessagePortRef Hooked_CFMessagePortCreateLocal(CFAllocatorRef allocator
                                                         CFMessagePortContext *context,
                                                         Boolean *shouldFreeInfo)
 {
-  // if (name)
-  //   LogWithFormat(false, "CREATING PORT %@", (NSString *)name);
+  if (name && !strcmp((char *)[(NSString *)name UTF8String], "NIHWMainHandler"))
+    LogWithFormat(false, "CREATING PORT %@", (NSString *)name);
 
   CFMessagePortRef outPort = CFMessagePortCreateLocal_caller(allocator,
                                                              name,
@@ -972,8 +986,11 @@ static SInt32 Hooked_CFMessagePortSendRequest(CFMessagePortRef remote,
     else if (dataLen == 8) {
       LogWithFormat(false, "==> %d true", *(uint32_t *)dataPtr);
     }
+    else {
+      LogWithFormat(false, "==> %d BYTES; %@", dataLen, (NSString *)CFMessagePortGetName(remote));
+    }
   }
-  logMsg(data, "LOG_OUTGOING", &outFile, &outOpened, kOutFilename);
+  //logMsg(data, "LOG_OUTGOING", &outFile, &outOpened, kOutFilename);
 
   SInt32 status = CFMessagePortSendRequest_caller(remote, msgid, data, sendTimeout, rcvTimeout, replyMode, returnDatap);
 

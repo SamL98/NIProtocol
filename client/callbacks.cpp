@@ -38,8 +38,11 @@ mikro_notif_port_callback(CFMessagePortRef local,
         printf("No data from hardware agent\n");
         return NULL;
     }
+
+    char portName[kMikroNotificationPortNameLen];
+    CFStringGetCString(CFMessagePortGetName(local), portName, kMikroNotificationPortNameLen, kCFStringEncodingASCII);
     
-    printf("Received %ld bytes of data\n", (long)CFDataGetLength(data));
+    printf("Received %ld bytes of data on %s\n", (long)CFDataGetLength(data), portName);
 
     if (gUserDefinedCallback)
         gUserDefinedCallback((uint32_t*)CFDataGetBytePtr(data), CFDataGetLength(data));

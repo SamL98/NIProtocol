@@ -11,6 +11,8 @@
 #define kNewProjLen 12
 #define kSelBtn 0x1
 #define kProjUid 0x800040
+#define kLenProjData 1024
+#define kLenRepData 78
 
 struct nonce_msg_t {
     uint32_t nonce;
@@ -70,11 +72,19 @@ struct __attribute__((packed)) new_proj_msg_t {
 	char 	 cmd[kNewProjLen];
 };
 
-struct proj_msg_t {
+struct __attribute__((packed)) rep_msg_t {
+    uint32_t nonce;
+    uint32_t len;
+    char     rep_data[kLenRepData];
+};
+
+struct __attribute__((packed)) proj_msg_t {
 	uint32_t nonce;
-	uint32_t sel_btn;
-	uint32_t unk;
-	uint32_t proj_uid;
+	uint32_t unk1;
+	uint32_t unk2;
+	uint32_t unk3;
+    uint32_t len;
+    char     proj_data[kLenProjData];
 };
 
 extern char gReceivedSerial;
@@ -86,6 +96,7 @@ extern struct mk_serial_msg_t mk_serial_msg;
 extern struct mk_port_name_msg_t mk_port_name_msg;
 extern struct serial_num_msg_t serial_num_msg;
 extern struct new_proj_msg_t new_proj_msg;
+extern struct rep_msg_t rep_msg;
 extern struct proj_msg_t proj_msg;
 
 void sendNonceMsg(CFMessagePortRef port, uint32_t nonce);
@@ -95,4 +106,5 @@ void sendMKSerialMsg(CFMessagePortRef port, uint32_t nonce, uint16_t uid);
 void sendMKNameMsg(CFMessagePortRef port, uint32_t nonce, char *name);
 void sendCmdMsg(CFMessagePortRef port, uint32_t nonce, uint32_t cmd);
 void sendNewProjMsg(CFMessagePortRef port, uint32_t nonce);
-void sendProjMsg(CFMessagePortRef port, uint32_t nonce);
+void sendRepMsg(CFMessagePortRef port, uint32_t nonce, char *in_rep_data);
+void sendProjMsg(CFMessagePortRef port, uint32_t nonce, char *in_proj_data);

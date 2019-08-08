@@ -8,6 +8,7 @@ NIIPC
 caps/
 client/client
 client/m2client
+client/*.bin
 *.o
 jup/
 *.i64

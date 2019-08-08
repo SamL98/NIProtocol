@@ -9,6 +9,7 @@ struct mk_serial_msg_t mk_serial_msg = {};
 struct mk_port_name_msg_t mk_port_name_msg = {};
 struct serial_num_msg_t serial_num_msg = {};
 struct new_proj_msg_t new_proj_msg = {};
+struct rep_msg_t rep_msg = {};
 struct proj_msg_t proj_msg = {};
 
 void
@@ -117,12 +118,23 @@ sendNewProjMsg(CFMessagePortRef port, uint32_t nonce)
     sendMsg(port, (uint8_t*)&new_proj_msg, sizeof(new_proj_msg));
 }
 
+void
+sendRepMsg(CFMessagePortRef port, uint32_t nonce, char *in_rep_data)
+{
+    rep_msg.nonce = nonce;
+    rep_msg.len = kLenRepData;
+    memcpy(rep_msg.rep_data, in_rep_data, kLenRepData);
+    sendMsg(port, (uint8_t*)&rep_msg, sizeof(rep_msg));
+}
+
 void 
-sendProjMsg(CFMessagePortRef port, uint32_t nonce)
+sendProjMsg(CFMessagePortRef port, uint32_t nonce, char *in_proj_data)
 {
     proj_msg.nonce = nonce;
-    proj_msg.sel_btn = kSelBtn;
-    proj_msg.unk = 0;
-    proj_msg.proj_uid = kProjUid;
+    proj_msg.unk1 = 0x10000000;
+    proj_msg.unk2 = 0;
+    proj_msg.unk3 = kProjUid;
+    proj_msg.len = kLenProjData;
+    memcpy(proj_msg.proj_data, in_proj_data, kLenProjData);
     sendMsg(port, (uint8_t*)&proj_msg, sizeof(proj_msg));
 }
