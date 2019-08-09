@@ -1,4 +1,5 @@
 #include <nimessenger.h>
+#include <ninotifier.h>
 #include "callbacks.h"
 
 #define kSerialNumberPacketDataLen 25
@@ -26,15 +27,21 @@ mikro_notif_port_callback(CFMessagePortRef local,
                           CFDataRef data,
                           void *info)
 {
-    if (!data) {
+    if (!data || !CFDataGetBytePtr(data)) {
         printf("No data from hardware agent\n");
         return NULL;
     }
 
     char portName[kMikroNotificationPortNameLen];
-    CFStringGetCString(CFMessagePortGetName(local), portName, kMikroNotificationPortNameLen, kCFStringEncodingASCII);
+    CFStringGetCString(CFMessagePortGetName(local), 
+					   portName, 
+					   kMikroNotificationPortNameLen, 
+					   kCFStringEncodingASCII);
     
     printf("Received %ld bytes of data on %s\n", (long)CFDataGetLength(data), portName);
+	broadcast((char *)CFDataGetBytePtr(data),
+			  (size_t)CFDataGetLength(data),
+			  NULL);
 
     return NULL;
 }
