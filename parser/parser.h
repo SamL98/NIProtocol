@@ -26,4 +26,3 @@ typedef struct {
 } mk2_msg;
 
 mk2_msg *parse_packet(char *packet, size_t packetLen, size_t *nmsgs);
-void free_msgs(mk2_msg *msgs);
