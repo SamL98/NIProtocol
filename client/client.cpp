@@ -1,4 +1,4 @@
-#include "messenger.h"
+#include <nimessenger.h>
 #include "callbacks.h"
 
 #define kMainPortName "NIHWMainHandler"

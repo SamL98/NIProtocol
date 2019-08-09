@@ -1,17 +1,14 @@
 CC=/usr/bin/clang++
 PWD=/Users/samlerner/Projects/NIProtocol/client
 
-client: callbacks messenger
-	$(CC) -g -o m2client client.cpp callbacks.o messenger.o \
+client: callbacks
+	$(CC) -o m2client client.cpp callbacks.o \
 		-framework CoreFoundation \
-		-I$(PWD) -L$(PWD)
+		-I$(PWD) -L$(PWD) \
+		-lnimessenger
 
-callbacks: messenger
-	$(CC) -o callbacks.o -c callbacks.cpp \
-		-I$(PWD)
-
-messenger:
-	$(CC) -o messenger.o -c messenger.cpp
+callbacks:
+	$(CC) -o callbacks.o -c callbacks.cpp
 
 clean:
 	rm m2client callbacks.o messenger.o
