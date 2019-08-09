@@ -25,3 +25,5 @@ app/
 notebooks/
 ipchook/*.dylib
 *.dylib
+*.bin
+*.png
