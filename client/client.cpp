@@ -22,13 +22,6 @@ uint32_t gRepNonce = 57439488;
 uint16_t gPortUids[kNumHandshakeIter] = {0x1300, 0x1140, 0x808, 0x1200, 0x1110, 0x1350, 0x1500, 0x1200};
 
 CFMessagePortRef
-getBootstrapPort()
-{
-    return CFMessagePortCreateRemote(kCFAllocatorDefault,
-                                     CFSTR(kMainPortName));
-}
-
-CFMessagePortRef
 waitForRequestPort(char *name)
 {
     CFStringRef      cfName;
@@ -118,7 +111,7 @@ performHandshakeIteration(uint16_t portUid,
     uint32_t         finalNonce;
 
     // Get a reference to the bootstrap port
-    bsPort = getBootstrapPort();
+    bsPort = getBootstrapPort(kMainPortName);
     if (!bsPort) {
         printf("Couldn't get bootstrap port\n");
         return;
@@ -180,38 +173,14 @@ req_port_fail:
     CFRelease(bsPort);
 }
 
-int
-getMsgData(char *dataPtr, char *fname, size_t len)
-{
-    FILE   *fp;
-    size_t bytesRead;
-
-    fp = fopen(fname, "r");
-    if (!fp) {
-        printf("Couldn't open %s\n", fname);
-        return 1;
-    }
-
-    bytesRead = fread(dataPtr, 1, len, fp);
-    if (bytesRead < len) {
-        printf("Could only read %lu bytes from %s\n", bytesRead, fname);
-        return 1;
-    }
-
-    return 0;
-}
-
 void
 doHandshake()
 {
     CFMessagePortRef reqPort;
     uint16_t msgUid = kInitMsgUid;
     size_t   i;
-    char     *nullProjData;
-    char     projData[kLenProjData];
-    char     repDataNull[kLenRepData];
-    char     repData[kLenRepData];
-    int      dataStatus;
+    char     screenData[kScreenDataLen];
+    char     buttonData[kButtonDataLen];
 
     for (i=0; i<kNumHandshakeIter; i++) {
         performHandshakeIteration(gPortUids[i], msgUid, i);
@@ -225,43 +194,32 @@ doHandshake()
         return;
     }
 
-    nullProjData = (char*)calloc(kLenProjData, sizeof(char));
-    if (!nullProjData) {
-        printf("Couldn't allocate null project data\n");
-        return;
+    size_t row, col;
+    char val;
+
+    for (i=0; i<kScreenDataLen; i++) {
+        // if (i % 32 != 0) screenData[i] = 0xff;
+        // else screenData[i] = 0;
+        //screenData[i] = 0x7f;
+        row = i / 128;
+        col = i % 128;
+
+        // val = col / 2;
+        // if (row % 2 != 0) val += 32;
+        
+        // screenData[i] = val;
+        screenData[i] = (row*32) + col/4;
     }
 
-    dataStatus = getMsgData(projData, "proj_data.bin", kLenProjData);
-    if (dataStatus) {
-        printf("Couldn't get project data\n");
-        return;
+    for (i=0; i<kButtonDataLen; i++) {
+        //buttonData[i] = 0xff * (i % 2);
+        if (i<30 || (i-30) % 3 != 0) buttonData[i] = 0;
+        else buttonData[i] = i-30;
     }
 
-    dataStatus = getMsgData(repDataNull, "rep_data_null.bin", kLenRepData);
-    if (dataStatus) {
-        printf("Couldn't get null rep data\n");
-        return;
-    }
-
-    dataStatus = getMsgData(repData, "rep_data.bin", kLenRepData);
-    if (dataStatus) {
-        printf("Couldn't get rep data\n");
-        return;
-    }
-
-    //sendNewProjMsg(reqPort, gNewProjNonce);
     sendCmdMsg(reqPort, gStartNonce, kStrt);
-    // sendNewProjMsg(reqPort, gNewProjNonce);
-    // sendCmdMsg(reqPort, gNullNonce, 0);
-    // sendProjMsg(reqPort, gProjNonce, nullProjData);
-
-    // for (i=0; i<3; i++)
-    //     sendRepMsg(reqPort, gRepNonce, repDataNull);
-
-    //sendRepMsg(reqPort, gRepNonce, repData);
-    sendProjMsg(reqPort, gProjNonce, projData);
-
-    free(nullProjData);
+    sendButtonDataMsg(reqPort, gRepNonce, buttonData);
+    sendScreenDataMsg(reqPort, gProjNonce, screenData);
 }
 
 int main(int argc, const char * argv[]) {

@@ -3,14 +3,6 @@
 
 #define kSerialNumberPacketDataLen 25
 
-maschine_callback gUserDefinedCallback = NULL;
-
-void
-registerCallback(maschine_callback callback)
-{
-    gUserDefinedCallback = callback;
-}
-
 CFMessagePortRef
 createNotificationPort(char *name, CFMessagePortCallBack callout)
 {
@@ -43,9 +35,6 @@ mikro_notif_port_callback(CFMessagePortRef local,
     CFStringGetCString(CFMessagePortGetName(local), portName, kMikroNotificationPortNameLen, kCFStringEncodingASCII);
     
     printf("Received %ld bytes of data on %s\n", (long)CFDataGetLength(data), portName);
-
-    if (gUserDefinedCallback)
-        gUserDefinedCallback((uint32_t*)CFDataGetBytePtr(data), CFDataGetLength(data));
 
     return NULL;
 }

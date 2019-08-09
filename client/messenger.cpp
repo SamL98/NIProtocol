@@ -9,8 +9,18 @@ struct mk_serial_msg_t mk_serial_msg = {};
 struct mk_port_name_msg_t mk_port_name_msg = {};
 struct serial_num_msg_t serial_num_msg = {};
 struct new_proj_msg_t new_proj_msg = {};
-struct rep_msg_t rep_msg = {};
-struct proj_msg_t proj_msg = {};
+struct button_data_msg_t button_data_msg = {};
+struct screen_data_msg_t screen_data_msg = {};
+
+CFMessagePortRef
+getBootstrapPort(const char *name)
+{
+    CFStringRef cfName = CFStringCreateWithCString(kCFAllocatorDefault,
+                                                   name,
+                                                   kCFStringEncodingASCII);
+    return CFMessagePortCreateRemote(kCFAllocatorDefault,
+                                     cfName);
+}
 
 void
 sendMsg(CFMessagePortRef port, uint8_t *msg, size_t size)
@@ -119,22 +129,22 @@ sendNewProjMsg(CFMessagePortRef port, uint32_t nonce)
 }
 
 void
-sendRepMsg(CFMessagePortRef port, uint32_t nonce, char *in_rep_data)
+sendButtonDataMsg(CFMessagePortRef port, uint32_t nonce, char *button_data)
 {
-    rep_msg.nonce = nonce;
-    rep_msg.len = kLenRepData;
-    memcpy(rep_msg.rep_data, in_rep_data, kLenRepData);
-    sendMsg(port, (uint8_t*)&rep_msg, sizeof(rep_msg));
+    button_data_msg.nonce = nonce;
+    button_data_msg.len = kButtonDataLen;
+    memcpy(button_data_msg.button_data, button_data, kButtonDataLen);
+    sendMsg(port, (uint8_t*)&button_data_msg, sizeof(button_data_msg));
 }
 
 void 
-sendProjMsg(CFMessagePortRef port, uint32_t nonce, char *in_proj_data)
+sendScreenDataMsg(CFMessagePortRef port, uint32_t nonce, char *screen_data)
 {
-    proj_msg.nonce = nonce;
-    proj_msg.unk1 = 0x10000000;
-    proj_msg.unk2 = 0;
-    proj_msg.unk3 = kProjUid;
-    proj_msg.len = kLenProjData;
-    memcpy(proj_msg.proj_data, in_proj_data, kLenProjData);
-    sendMsg(port, (uint8_t*)&proj_msg, sizeof(proj_msg));
+    screen_data_msg.nonce = nonce;
+    screen_data_msg.unk1 = 0x10000000;
+    screen_data_msg.unk2 = 0;
+    screen_data_msg.unk3 = kProjUid;
+    screen_data_msg.len = kScreenDataLen;
+    memcpy(screen_data_msg.screen_data, screen_data, kScreenDataLen);
+    sendMsg(port, (uint8_t*)&screen_data_msg, sizeof(screen_data_msg));
 }
