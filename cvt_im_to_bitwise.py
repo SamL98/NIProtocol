@@ -1,6 +1,7 @@
-from skimage.io import imread, imsave
+from skimage.io import imread
 import numpy as np
 import sys
+from os.path import join
 
 fname_w_ext = sys.argv[1]
 fname, ext = tuple(fname_w_ext.split('.'))
@@ -15,4 +16,5 @@ for i in range(8):
 	band = im[i*6:(i+1)*6]
 	imb[i] = (band * shifts).sum(0)
 
-imsave('%s_bitwise.%s' % (fname, ext), imb)
+with open(join('client', '%s_bitwise.bin' % fname), 'wb') as f:
+	f.write(imb.tobytes())

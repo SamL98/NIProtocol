@@ -39,9 +39,9 @@ mikro_notif_port_callback(CFMessagePortRef local,
 					   kCFStringEncodingASCII);
     
     printf("Received %ld bytes of data on %s\n", (long)CFDataGetLength(data), portName);
-	broadcast((char *)CFDataGetBytePtr(data),
-			  (size_t)CFDataGetLength(data),
-			  NULL);
+
+    if (CFDataGetLength(data) >= 24)
+	    broadcast(data);
 
     return NULL;
 }

@@ -9,10 +9,11 @@ notif_callback(CFNotificationCenterRef center,
 			   CFStringRef object,
 			   CFDictionaryRef userInfo)
 {
-	char    *packet;
-	mk2_msg *msgs;
-	size_t  packetLen,
-			nmsgs, i;
+	CFDataRef   data;
+	char		*packet;
+	mk2_msg 	*msgs;
+	size_t  	packetLen,
+				nmsgs, i;
 
 	if (!userInfo) {
 		printf("No user info from notification\n");
@@ -20,23 +21,19 @@ notif_callback(CFNotificationCenterRef center,
 	}
 
 	if (!CFDictionaryGetValueIfPresent(userInfo, 
-									   (const void*)kPacketKey,
-									   (const void**)&packet) || !packet) {
-		printf("No packet key in user info\n");
+									   (const void*)CFSTR(kDataKey),
+									   (const void**)&data) || !data) {
+		printf("No data key in user info\n");
 		return;
 	}
 
-	if (!CFDictionaryGetValueIfPresent(userInfo, 
-									   (const void*)kPacketLenKey,
-									   (const void**)&packetLen)) {
-		printf("No packet len key in user info\n");
-		return;
-	}
+	packet = (char *)CFDataGetBytePtr(data);
+	packetLen = CFDataGetLength(data);
 
 	msgs = parse_packet(packet, packetLen, &nmsgs);
 	if (!msgs) {
 		printf("Could not parse messages from packet\n");
-		return;
+		goto release_data;
 	}
 
 	for (i=0; i<nmsgs; i++) {
@@ -45,9 +42,12 @@ notif_callback(CFNotificationCenterRef center,
 		else
 			printf("Button - Button: %u, Pressure: %u\n", msgs[i].msg.button_msg.btn, msgs[i].msg.button_msg.pressure);
 	}
+
+release_data:
+	CFRelease(data);
 }
 
 int main()
 {
-	listen((CFNotificationCallback)notif_callback, NULL);
+	listen((CFNotificationCallback)notif_callback);
 }

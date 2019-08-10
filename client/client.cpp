@@ -194,6 +194,13 @@ doHandshake()
         return;
     }
 
+	FILE *fp = fopen("initials_bitwise.bin", "r");
+	if (fp) {
+		fread(screenData, 1, kScreenDataLen, fp);
+		fclose(fp);
+	}
+
+	/*
     size_t row, col;
     char val;
 
@@ -210,6 +217,7 @@ doHandshake()
         // screenData[i] = val;
         screenData[i] = (row*32) + col/4;
     }
+	*/
 
     for (i=0; i<kButtonDataLen; i++) {
         //buttonData[i] = 0xff * (i % 2);
