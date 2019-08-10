@@ -1,7 +1,7 @@
 CC=/usr/bin/clang++
 
 testapp:
-	$(CC) -o app testapp.cpp \
+	$(CC) -g -o app testapp.cpp \
 		-framework Foundation \
 		-lniparser -lninotifier
 

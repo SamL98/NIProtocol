@@ -2,7 +2,7 @@ CC=/usr/bin/clang++
 PWD=/Users/samlerner/Projects/NIProtocol/parser
 
 parser.dylib: parser.o
-	$(CC) -o parser.dylib parser.o \
+	$(CC) -g -o parser.dylib parser.o \
 		-dynamiclib -framework CoreFoundation \
 		-install_name libniparser.dylib
 

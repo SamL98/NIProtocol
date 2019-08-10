@@ -1,7 +1,8 @@
 #include <stdlib.h>
 
-#define kWheelCtrl 0x7703
-#define kButtonsCtrl 0x5003
+#define kWheelCtrl1 0x3774e00
+#define kWheelCtrl2 0x3734e00
+#define kButtonsCtrl 0x3504e00
 #define kWheelMsgLen 8
 #define kButtonMsgLen 12
 

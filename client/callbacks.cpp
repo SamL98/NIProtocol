@@ -38,7 +38,7 @@ mikro_notif_port_callback(CFMessagePortRef local,
 					   kMikroNotificationPortNameLen, 
 					   kCFStringEncodingASCII);
     
-    printf("Received %ld bytes of data on %s\n", (long)CFDataGetLength(data), portName);
+    //printf("Received %ld bytes of data on %s\n", (long)CFDataGetLength(data), portName);
 
     if (CFDataGetLength(data) >= 24)
 	    broadcast(data);

@@ -33,7 +33,7 @@ notif_callback(CFNotificationCenterRef center,
 	msgs = parse_packet(packet, packetLen, &nmsgs);
 	if (!msgs) {
 		printf("Could not parse messages from packet\n");
-		goto release_data;
+		return;
 	}
 
 	for (i=0; i<nmsgs; i++) {
@@ -42,12 +42,10 @@ notif_callback(CFNotificationCenterRef center,
 		else
 			printf("Button - Button: %u, Pressure: %u\n", msgs[i].msg.button_msg.btn, msgs[i].msg.button_msg.pressure);
 	}
-
-release_data:
-	CFRelease(data);
 }
 
 int main()
 {
 	listen((CFNotificationCallback)notif_callback);
+	CFRunLoopRun();
 }
