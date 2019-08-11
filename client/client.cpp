@@ -15,15 +15,14 @@ uint32_t gNonces[4] = {55797590, 54818048, 54543104, 54817091};
 uint32_t gSerialNonce = 54806784;
 uint32_t gSpecialEndNonce = 54749011;
 uint32_t gStartNonce = 54739712;
-uint32_t gNewProjNonce = 55145294;
-uint32_t gNullNonce = 55145300;
-uint32_t gProjNonce = 56914756;
-uint32_t gRepNonce = 57439488;
 uint16_t gPortUids[kNumHandshakeIter] = {0x1300, 0x1140, 0x808, 0x1200, 0x1110, 0x1350, 0x1500, 0x1200};
 
 CFMessagePortRef
 waitForRequestPort(char *name)
 {
+    // Try 10 times to obtain a reference to hardware agent's request port.
+    // Wait 1 second between tries. Usually don't need all 10 tries.
+
     CFStringRef      cfName;
     CFMessagePortRef port = NULL;
     size_t           tries = 0;
@@ -49,6 +48,11 @@ waitForRequestPort(char *name)
 CFMessagePortRef
 getRequestPort(uint16_t portUid, uint16_t msgUid, size_t handshakeIter)
 {
+    // If we are on the last handshake iteration, we should've sent the request
+    // port should be specified by the serial number and msgUid.
+    //
+    // Otherwise, it should be specified by the portUid and msgUid.
+
     char *reqPortNamePtr;
 
     if (handshakeIter == kNumHandshakeIter-1) {
@@ -58,7 +62,7 @@ getRequestPort(uint16_t portUid, uint16_t msgUid, size_t handshakeIter)
         }
 
         char reqPortName[kMikroRequestPortNameLen];
-        sprintf(reqPortName, kMikroRequestPortNameFormat, serial_num_msg.num, msgUid);
+        sprintf(reqPortName, kMikroRequestPortNameFormat, gSerialNum, msgUid);
         reqPortNamePtr = reqPortName;
     }
     else {
@@ -74,6 +78,9 @@ getRequestPort(uint16_t portUid, uint16_t msgUid, size_t handshakeIter)
 CFMessagePortRef
 setNotificationPort(char *name, uint16_t portUid, uint16_t msgUid, size_t handshakeIter)
 {
+    // Similarly to the notification port, the name of the notification port
+    // to open depends on whether or not we are on the last iteration of the handshake.
+
     CFMessagePortCallBack callback;
 
     if (handshakeIter == kNumHandshakeIter-1) {
@@ -83,7 +90,7 @@ setNotificationPort(char *name, uint16_t portUid, uint16_t msgUid, size_t handsh
         }
 
         char notifPortName[kMikroNotificationPortNameLen];
-        sprintf(notifPortName, kMikroNotificationPortNameFormat, serial_num_msg.num, msgUid);
+        sprintf(notifPortName, kMikroNotificationPortNameFormat, gSerialNum, msgUid);
 
         memcpy(name, notifPortName, kMikroNotificationPortNameLen);
         callback = (CFMessagePortCallBack)mikro_notif_port_callback;
@@ -173,65 +180,60 @@ req_port_fail:
     CFRelease(bsPort);
 }
 
-void
+CFMessagePortRef
 doHandshake()
 {
     CFMessagePortRef reqPort;
     uint16_t msgUid = kInitMsgUid;
     size_t   i;
-    char     screenData[kScreenDataLen];
-    char     buttonData[kButtonDataLen];
 
     for (i=0; i<kNumHandshakeIter; i++) {
         performHandshakeIteration(gPortUids[i], msgUid, i);
-        if (i != kNumHandshakeIter-3)
-            ++msgUid;
+        if (i != kNumHandshakeIter-3) ++msgUid;
     }
 
     reqPort = getRequestPort(0, msgUid-1, i-1);
     if (!reqPort) {
         printf("Couldn't get request port\n");
-        return;
+        return NULL;
     }
 
-	FILE *fp = fopen("initials_bitwise.bin", "r");
-	if (fp) {
-		fread(screenData, 1, kScreenDataLen, fp);
-		fclose(fp);
-	}
-
-	/*
-    size_t row, col;
-    char val;
-
-    for (i=0; i<kScreenDataLen; i++) {
-        // if (i % 32 != 0) screenData[i] = 0xff;
-        // else screenData[i] = 0;
-        //screenData[i] = 0x7f;
-        row = i / 128;
-        col = i % 128;
-
-        // val = col / 2;
-        // if (row % 2 != 0) val += 32;
-        
-        // screenData[i] = val;
-        screenData[i] = (row*32) + col/4;
-    }
-	*/
-
-    for (i=0; i<kButtonDataLen; i++) {
-        //buttonData[i] = 0xff * (i % 2);
-        if (i<30 || (i-30) % 3 != 0) buttonData[i] = 0;
-        else buttonData[i] = i-30;
-    }
-
+    // Send the final message to the MK2 to start
     sendCmdMsg(reqPort, gStartNonce, kStrt);
-    sendButtonDataMsg(reqPort, gRepNonce, buttonData);
-    sendScreenDataMsg(reqPort, gProjNonce, screenData);
+
+    return reqPort;
+}
+
+void
+setupMK2(CFMessagePortRef reqPort)
+{
+    button_data_t button_data;
+    screen_data_t screen_data;
+    size_t        i;
+    FILE          *fp;  
+
+    initButtonData(&button_data);
+    setPadColor(&button_data, 1, (char)255, 0, 0);
+
+    initScreenData(&screen_data);
+    readScreenDataFromFile(&screen_data, "initials_bitwise.bin");
+
+    sendButtonDataMsg(reqPort, button_data);
+    sendScreenDataMsg(reqPort, screen_data);
 }
 
 int main(int argc, const char * argv[]) {
-    doHandshake();
+    CFMessagePortRef reqPort;
+
+    reqPort = doHandshake();
+    if (!reqPort) {
+        printf("Couldn't obtain request port form handshake\n");
+        return 1;
+    }
+
+    setupMK2(reqPort);
     CFRunLoopRun();
+
+    CFRelease(reqPort);
     return 0;
 }

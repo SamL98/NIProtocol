@@ -4,6 +4,7 @@ PWD=/Users/samlerner/Projects/NIProtocol/messenger
 messenger.dylib: messenger.o
 	$(CC) -o messenger.dylib messenger.o \
 		-dynamiclib -framework CoreFoundation \
+		-lniparser \
 		-install_name libnimessenger.dylib
 
 	cp $(PWD)/messenger.dylib /usr/local/lib/libnimessenger.dylib

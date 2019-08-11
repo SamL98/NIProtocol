@@ -52,9 +52,10 @@ agent_notif_port_callback(CFMessagePortRef local,
                           CFDataRef data,
                           void *info)
 {
-    Boolean shouldFreeInfo;
-    CFStringRef cfAgentNotifPortName;
-    char *agentNotifPortName;
+    serial_num_msg_t serial_num_msg;
+    CFStringRef      cfAgentNotifPortName;
+    Boolean          shouldFreeInfo;
+    char             *agentNotifPortName;
 
     if (!data || CFDataGetLength(data) != kSerialNumberPacketDataLen)
     {
@@ -74,7 +75,8 @@ agent_notif_port_callback(CFMessagePortRef local,
                                                        kCFStringEncodingASCII);
 
     // Interpret the data as a serial message packet
-    serial_num_msg = *(struct serial_num_msg_t *)CFDataGetBytePtr(data);
+    serial_num_msg = *(serial_num_msg_t *)CFDataGetBytePtr(data);
+    strncpy(gSerialNum, serial_num_msg.num, kSerialNumberLen);
     
     return NULL;
 }
