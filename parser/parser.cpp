@@ -41,10 +41,10 @@ btn_num_to_code(uint32_t num)
 }
 
 void 
-parse_wheel_msg(uint32_t *data,
-				mk2_msg *msg)
+parse_button_msg(uint32_t *data,
+				 mk2_msg *msg)
 {
-	// The layout of a wheel msg is:
+	// The layout of a button msg is:
 	// 		btn	   |    state
 	//	--4 bytes-- -- 4 bytes--
 	//
@@ -52,35 +52,25 @@ parse_wheel_msg(uint32_t *data,
 	// When scrolling, state is 1 when scrolling clockwise and -1 when counterclockwise.
 	// When clicking, the state is 1 when down and 0 when up.
 
-	msg->type = WheelType;
-	msg->msg.wheel_msg.btn = *data;
-	msg->msg.wheel_msg.state = *(data+1);
+	msg->type = ButtonType;
+	msg->msg.button_msg.btn = *data;
+	msg->msg.button_msg.state = *(data+1);
 }
 
 void
-parse_button_msg(uint32_t *data,
-				 mk2_msg *msg)
+parse_pad_msg(uint32_t *data,
+			  mk2_msg *msg)
 {
-	// The layout of a button msg is:
+	// The layout of a pad msg is:
 	//		btn	   |  unknown  | pressure
 	//	--4 bytes-- --4 bytes-- --4 bytes--
 	//
 	// Where btn is the button code described in `btn_code_to_btn_num`
 	// and pressure is the amount of pressure being applied to the button.
 
-	msg->type = ButtonType;
-	msg->msg.button_msg.btn = btn_code_to_num(*data);
-	msg->msg.button_msg.pressure = *(data+2);
-
-	printf("From parser: %u\n", msg->msg.button_msg.btn);
-
-	if (msg->msg.button_msg.btn <= 0 || msg->msg.button_msg.btn > 16) {
-		uint8_t *bytes = (uint8_t*)data;
-		for (size_t i=0; i<12; i++)
-			printf("%x, ", *(bytes+i));
-		printf("\n");
-		exit(1);
-	}
+	msg->type = PadType;
+	msg->msg.pad_msg.btn = btn_code_to_num(*data);
+	msg->msg.pad_msg.pressure = *(data+2);
 }
 
 int
@@ -104,10 +94,10 @@ parse_packet(char *packet,
 	ctrl = *fields;
 	fields += 4;
 
-	if (ctrl == kWheelCtrl1 || ctrl == kWheelCtrl2)
-		parse_fn = &parse_wheel_msg;
-	else if (ctrl == kButtonsCtrl)
+	if (ctrl == kWheelCtrl || ctrl == kButtonCtrl)
 		parse_fn = &parse_button_msg;
+	else if (ctrl == kPadCtrl)
+		parse_fn = &parse_pad_msg;
 	else {
 		printf("Unrecognized control code: %x\n", ctrl);
 		return 1;
