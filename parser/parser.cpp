@@ -54,7 +54,7 @@ parse_button_msg(uint32_t *data,
 
 	msg->type = ButtonType;
 	msg->msg.button_msg.btn = *data;
-	msg->msg.button_msg.state = *(data+1);
+	msg->msg.button_msg.state = *(int32_t *)(data+1);
 }
 
 void
