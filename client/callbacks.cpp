@@ -5,20 +5,55 @@
 #define kSerialNumberPacketDataLen 25
 
 CFMessagePortRef
-createNotificationPort(char *name, CFMessagePortCallBack callout)
+createNotificationPort(const char *name, 
+                       CFMessagePortCallBack callout, 
+                       void *info)
 {
-    Boolean shouldFreeInfo;
-    CFStringRef cfName;
+    Boolean              shouldFreeInfo;
+    CFStringRef          cfName;
+    CFMessagePortContext ctx;
 
     cfName = CFStringCreateWithCString(kCFAllocatorDefault,
                                        name,
                                        kCFStringEncodingASCII);
 
+    ctx.version = 0;
+    ctx.info = info;
+    ctx.retain = NULL;
+    ctx.release = NULL;
+    ctx.copyDescription = NULL;
+
     return CFMessagePortCreateLocal(kCFAllocatorDefault,
                                     cfName,
                                     callout,
-                                    NULL,
+                                    &ctx,
                                     &shouldFreeInfo);
+}
+
+CFDataRef
+bootstrap_notif_port_callback(CFMessagePortRef local, 
+                              SInt32 msgid, 
+                              CFDataRef data, 
+                              void *info)
+{
+    CFMessagePortRef reqPort;
+
+    if (!data || !CFDataGetBytePtr(data)) {
+        printf("No data from hardware agent\n");
+        return NULL;
+    }
+
+    if (!info) {
+        printf("No info in bootstrap notif port callback\n");
+        return NULL;
+    }
+
+    reqPort = (CFMessagePortRef)info;
+    sendMsg(reqPort, 
+            (uint8_t *)CFDataGetBytePtr(data), 
+            (size_t)CFDataGetLength(data));
+
+    return NULL;
 }
 
 CFDataRef

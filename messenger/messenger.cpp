@@ -169,6 +169,7 @@ setPadColor(button_data_t *button_data, uint32_t btn_num, char r, char g, char b
 
     btn_code = btn_num_to_code(btn_num);
     base_idx = btn_code * 3;
+
     button_data->pad_buttons[base_idx] = r;
     button_data->pad_buttons[base_idx+1] = g;
     button_data->pad_buttons[base_idx+2] = b;

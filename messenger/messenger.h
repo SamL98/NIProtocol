@@ -1,5 +1,6 @@
 #include <CoreFoundation/CoreFoundation.h>
 
+#define kSLBootstrapPortName "SLHWMainHandler"
 #define kNim2 0x4e694d32
 #define kPrmy 0x70726d79
 #define kTrue 0x74727565
@@ -94,6 +95,7 @@ extern char gReceivedSerial;
 extern char gSerialNum[kSerialNumberLen];
 
 CFMessagePortRef getBootstrapPort(const char *name);
+void sendMsg(CFMessagePortRef port, uint8_t *msg, size_t size);
 void sendNonceMsg(CFMessagePortRef port, uint32_t nonce);
 void sendUidMsg(CFMessagePortRef port, uint32_t nonce, uint16_t uid);
 void sendNameMsg(CFMessagePortRef port, uint32_t nonce, char *name);

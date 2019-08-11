@@ -10,7 +10,7 @@ parser.dylib: parser.o
 	cp $(PWD)/parser.h /usr/local/include/niparser.h
 
 parser.o:
-	$(CC) -o parser.o -c parser.cpp -I$(PWD)
+	$(CC) -g -o parser.o -c parser.cpp -I$(PWD)
 
 clean:
 	rm parser.o parser.dylib

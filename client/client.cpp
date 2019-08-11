@@ -103,7 +103,7 @@ setNotificationPort(char *name, uint16_t portUid, uint16_t msgUid, size_t handsh
         callback = (CFMessagePortCallBack)agent_notif_port_callback;
     }
 
-    return createNotificationPort(name, callback);
+    return createNotificationPort((const char*)name, callback, NULL);
 }
 
 void
@@ -213,7 +213,7 @@ setupMK2(CFMessagePortRef reqPort)
     FILE          *fp;  
 
     initButtonData(&button_data);
-    setPadColor(&button_data, 1, (char)255, 0, 0);
+    setPadColor(&button_data, 1, (char)255, (char)0, (char)0);
 
     initScreenData(&screen_data);
     readScreenDataFromFile(&screen_data, "initials_bitwise.bin");
@@ -223,17 +223,30 @@ setupMK2(CFMessagePortRef reqPort)
 }
 
 int main(int argc, const char * argv[]) {
-    CFMessagePortRef reqPort;
+    CFMessagePortRef reqPort,
+                     notifPort;
 
-    reqPort = doHandshake();
-    if (!reqPort) {
+    if (!(reqPort = doHandshake())) {
         printf("Couldn't obtain request port form handshake\n");
         return 1;
     }
 
+    printf("Finished handshake\n");
     setupMK2(reqPort);
+    printf("Performed initial MK2 setup\n");
+
+    if (!(notifPort = createNotificationPort(kSLBootstrapPortName, 
+                                             (CFMessagePortCallBack)bootstrap_notif_port_callback,
+                                             (void *)reqPort))) {
+        printf("Couldn't create SL bootstrap notification port\n");
+        return 1;
+    }
+
+    printf("Created %s bootstrap port\n", kSLBootstrapPortName);
+    CFMessagePortSetDispatchQueue(notifPort,
+								  dispatch_get_main_queue());
+
     CFRunLoopRun();
 
-    CFRelease(reqPort);
     return 0;
 }

@@ -1,6 +1,12 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <niparser.h>
 #include <ninotifier.h>
+#include <nimessenger.h>
+
+CFMessagePortRef gBsPort = NULL;
+uint32_t gPrevBtn = 0;
+
+size_t callbackcount = 0;
 
 void
 notif_callback(CFNotificationCenterRef center,
@@ -9,11 +15,21 @@ notif_callback(CFNotificationCenterRef center,
 			   CFStringRef object,
 			   CFDictionaryRef userInfo)
 {
-	CFDataRef   data;
-	char		*packet;
-	mk2_msg 	*msgs;
-	size_t  	packetLen,
-				nmsgs, i;
+	CFDataRef   	 data;
+	char			 *packet;
+	mk2_msg 		 msg;
+	size_t  		 packetLen;
+	button_data_t 	 button_data;
+	int				 parseResult;
+
+	initButtonData(&button_data);
+
+	if (!gBsPort) {
+		if (!(gBsPort = getBootstrapPort(kSLBootstrapPortName))) {
+			printf("Couldn't get reference to SL bootstrap port\n");
+			return;
+		}
+	}
 
 	if (!userInfo) {
 		printf("No user info from notification\n");
@@ -30,17 +46,27 @@ notif_callback(CFNotificationCenterRef center,
 	packet = (char *)CFDataGetBytePtr(data);
 	packetLen = CFDataGetLength(data);
 
-	msgs = parse_packet(packet, packetLen, &nmsgs);
-	if (!msgs) {
-		printf("Could not parse messages from packet\n");
+	if (!packet || packetLen < 0) {
+		printf("No data from packet\n");
 		return;
 	}
 
-	for (i=0; i<nmsgs; i++) {
-		if (msgs[i].type == WheelType)
-			printf("Wheel - Button: %u, State: %d\n", msgs[i].msg.wheel_msg.btn, msgs[i].msg.wheel_msg.state);
-		else
-			printf("Button - Button: %u, Pressure: %u\n", msgs[i].msg.button_msg.btn, msgs[i].msg.button_msg.pressure);
+	if (parse_packet(packet, packetLen, &msg)) {
+		printf("Could not parse message from packet\n");
+		return;
+	}
+
+	if (msg.type == WheelType)
+		printf("Wheel - Button: %u, State: %d\n", msg.msg.wheel_msg.btn, msg.msg.wheel_msg.state);
+	else 
+	{
+		printf("Button - Button: %u, Pressure: %u\n", msg.msg.button_msg.btn, msg.msg.button_msg.pressure);
+
+		if (msg.msg.button_msg.btn != gPrevBtn) {
+			gPrevBtn = msg.msg.button_msg.btn;
+			setPadColor(&button_data, gPrevBtn, char(255), 0, 0);
+			sendButtonDataMsg(gBsPort, button_data);
+		}
 	}
 }
 

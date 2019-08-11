@@ -71,24 +71,26 @@ parse_button_msg(uint32_t *data,
 	msg->type = ButtonType;
 	msg->msg.button_msg.btn = btn_code_to_num(*data);
 	msg->msg.button_msg.pressure = *(data+2);
+
+	printf("From parser: %u\n", msg->msg.button_msg.btn);
+
+	if (msg->msg.button_msg.btn <= 0 || msg->msg.button_msg.btn > 16) {
+		uint8_t *bytes = (uint8_t*)data;
+		for (size_t i=0; i<12; i++)
+			printf("%x, ", *(bytes+i));
+		printf("\n");
+		exit(1);
+	}
 }
 
-mk2_msg *
+int
 parse_packet(char *packet, 
 			 size_t packetLen,
-			 size_t *nmsgs)
+			 mk2_msg *msg)
 {
 	uint32_t *fields,
 			 ctrl;
-	size_t 	 msgLen,
-			 msgStructLen,
-			 i;
 	void	 (*parse_fn)(uint32_t*, mk2_msg*);
-	mk2_msg  *msgs;
-	MsgType  msgType;
-
-	msgs = NULL;
-	*nmsgs = 0;
 
 	// The header of a packet is formatted as such:
 	//	  ctrl    |  counter  |  unknown   |   nmsgs
@@ -100,36 +102,17 @@ parse_packet(char *packet,
 	
 	fields = (uint32_t *)packet;
 	ctrl = *fields;
-	fields += 3;
-	*nmsgs = *fields;
-	fields += 1;
+	fields += 4;
 
-	if (ctrl == kWheelCtrl1 || ctrl == kWheelCtrl2) {
-		msgType = WheelType;
-		msgLen = kWheelMsgLen;
-		msgStructLen = sizeof(mk2_wheel_msg);
+	if (ctrl == kWheelCtrl1 || ctrl == kWheelCtrl2)
 		parse_fn = &parse_wheel_msg;
-	}
-	else if (ctrl == kButtonsCtrl) {
-		msgType = ButtonType;
-		msgLen = kButtonMsgLen;
-		msgStructLen = sizeof(mk2_button_msg);
+	else if (ctrl == kButtonsCtrl)
 		parse_fn = &parse_button_msg;
-	}
 	else {
 		printf("Unrecognized control code: %x\n", ctrl);
-		return NULL;
-	}
-
-	if (!(msgs = (mk2_msg *)malloc(msgStructLen * (*nmsgs)))) {
-		printf("Couldn't malloc %lu msgs\n", *nmsgs);
-		return NULL;
+		return 1;
 	}
 	
-	for (i=0; i<(*nmsgs); i++) {
-		parse_fn(fields, &msgs[i]);
-		fields += msgLen / 4;
-	}
-
-	return msgs;
+	parse_fn(fields, msg);
+	return 0;
 }

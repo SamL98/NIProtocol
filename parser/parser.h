@@ -28,4 +28,4 @@ typedef struct {
 
 uint32_t btn_code_to_num(uint32_t code);
 uint32_t btn_num_to_code(uint32_t num);
-mk2_msg *parse_packet(char *packet, size_t packetLen, size_t *nmsgs);
+int parse_packet(char *packet, size_t packetLen, mk2_msg *msg);
