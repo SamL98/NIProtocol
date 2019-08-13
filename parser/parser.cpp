@@ -106,3 +106,12 @@ parse_packet(char *packet,
 	parse_fn(fields, msg);
 	return 0;
 }
+
+void
+display_msg(mk2_msg msg)
+{
+	if (msg.type == ButtonType)
+		printf("Button - Button: %u, State: %d\n", msg.msg.button_msg.btn, msg.msg.button_msg.state);
+	else 
+		printf("Pad - Button: %u, Pressure: %u\n", msg.msg.pad_msg.btn, msg.msg.pad_msg.pressure);
+}

@@ -56,17 +56,12 @@ notif_callback(CFNotificationCenterRef center,
 		return;
 	}
 
-	if (msg.type == ButtonType)
-		printf("Button - Button: %u, State: %d\n", msg.msg.button_msg.btn, msg.msg.button_msg.state);
-	else 
-	{
-		printf("Pad - Button: %u, Pressure: %u\n", msg.msg.pad_msg.btn, msg.msg.pad_msg.pressure);
+	display_msg(msg);
 
-		if (msg.msg.pad_msg.btn != gPrevBtn) {
-			gPrevBtn = msg.msg.pad_msg.btn;
-			setPadColor(&button_data, gPrevBtn, char(255), 0, 0);
-			sendButtonDataMsg(gBsPort, button_data);
-		}
+	if (msg.type == PadType && msg.msg.pad_msg.btn != gPrevBtn)
+		gPrevBtn = msg.msg.pad_msg.btn;
+		setPadColor(&button_data, gPrevBtn, char(255), 0, 0);
+		sendButtonDataMsg(gBsPort, button_data);
 	}
 }
 

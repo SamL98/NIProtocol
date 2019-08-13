@@ -4,7 +4,7 @@ ipcopenhook.dylib: ipcopenhook.o
 	$(CC) -arch x86_64 -o ipcopenhook.dylib ipcopenhook.o \
 		-lobjc -framework Cocoa -framework Carbon \
 		-Wl,-F/System/Library/PrivateFrameworks \
-		-framework CoreSymbolication -dynamiclib
+		-dynamiclib
 
 ipcopenhook.o: ipcopenhook.mm
 	$(CC) -arch x86_64 -o ipcopenhook.o -c ipcopenhook.mm \

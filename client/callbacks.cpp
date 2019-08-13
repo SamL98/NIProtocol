@@ -19,8 +19,8 @@ createNotificationPort(const char *name,
 
     ctx.version = 0;
     ctx.info = info;
-    ctx.retain = NULL;
-    ctx.release = NULL;
+    ctx.retain = CFRetain;
+    ctx.release = CFRelease;
     ctx.copyDescription = NULL;
 
     return CFMessagePortCreateLocal(kCFAllocatorDefault,

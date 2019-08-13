@@ -227,7 +227,7 @@ int main(int argc, const char * argv[]) {
                      notifPort;
 
     if (!(reqPort = doHandshake())) {
-        printf("Couldn't obtain request port form handshake\n");
+        printf("Couldn't obtain request port from handshake\n");
         return 1;
     }
 

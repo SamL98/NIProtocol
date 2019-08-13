@@ -144,21 +144,13 @@ sendScreenDataMsg(CFMessagePortRef port, screen_data_t screen_data)
 void
 initButtonData(button_data_t *button_data)
 {
-    uint8_t *data_ptr = (uint8_t *)button_data;
-    size_t  i;
-
-    for (i=0; i<kButtonDataLen; i++)
-        *(data_ptr+i) = 0;
+    memset((void*)button_data, 0, sizeof(button_data));
 }
 
 void
 initScreenData(screen_data_t *screen_data)
 {
-    uint8_t *data_ptr = (uint8_t *)screen_data;
-    size_t  i;
-
-    for (i=0; i<kScreenDataLen; i++)
-        *(data_ptr+i) = 0;
+    memset((void*)screen_data, 0, sizeof(screen_data));
 }
 
 void
