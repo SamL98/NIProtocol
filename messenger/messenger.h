@@ -1,6 +1,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 
-#define kSLBootstrapPortName "SLHWMainHandler"
+#define kMainPortName "NIHWMainHandler"
+#define kMikroNotificationPortNameFormat "NIHWMaschineMikroMK2-%s%04dNotification"
 #define kNim2 0x4e694d32
 #define kPrmy 0x70726d79
 #define kTrue 0x74727565
@@ -60,7 +61,7 @@ typedef struct __attribute__((packed)) {
 } mk_port_name_msg_t;
 
 typedef struct __attribute__((packed)) {
-    uint32_t timestamp;
+    uint32_t nonce;
     uint32_t unk;
     uint32_t port_uid;
     uint32_t len;

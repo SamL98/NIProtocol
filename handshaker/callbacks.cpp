@@ -11,6 +11,7 @@ createNotificationPort(const char *name,
 {
     Boolean              shouldFreeInfo;
     CFStringRef          cfName;
+    CFMessagePortRef     port;
     CFMessagePortContext ctx;
 
     cfName = CFStringCreateWithCString(kCFAllocatorDefault,
@@ -23,37 +24,16 @@ createNotificationPort(const char *name,
     ctx.release = CFRelease;
     ctx.copyDescription = NULL;
 
-    return CFMessagePortCreateLocal(kCFAllocatorDefault,
+    port = CFMessagePortCreateLocal(kCFAllocatorDefault,
                                     cfName,
                                     callout,
                                     &ctx,
                                     &shouldFreeInfo);
-}
 
-CFDataRef
-bootstrap_notif_port_callback(CFMessagePortRef local, 
-                              SInt32 msgid, 
-                              CFDataRef data, 
-                              void *info)
-{
-    CFMessagePortRef reqPort;
+    if (shouldFreeInfo)
+        free(info);
 
-    if (!data || !CFDataGetBytePtr(data)) {
-        printf("No data from hardware agent\n");
-        return NULL;
-    }
-
-    if (!info) {
-        printf("No info in bootstrap notif port callback\n");
-        return NULL;
-    }
-
-    reqPort = (CFMessagePortRef)info;
-    sendMsg(reqPort, 
-            (uint8_t *)CFDataGetBytePtr(data), 
-            (size_t)CFDataGetLength(data));
-
-    return NULL;
+    return port;
 }
 
 CFDataRef
@@ -114,15 +94,4 @@ agent_notif_port_callback(CFMessagePortRef local,
     strncpy(gSerialNum, serial_num_msg.num, kSerialNumberLen);
     
     return NULL;
-}
-
-void
-invalidation_callback(CFMessagePortRef port, void *info)
-{
-	CFStringRef portName = CFMessagePortGetName(port);
-	if (!portName)
-		return;
-
-	printf("%s invalidated\n", CFStringGetCStringPtr(portName, kCFStringEncodingASCII));
-	CFRelease(portName);
 }
