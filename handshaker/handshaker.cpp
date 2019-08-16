@@ -1,7 +1,8 @@
 #include <nimessenger.h>
+#include "callbacks.h"
+#include "handshaker.h"
 
 #define kAgentNotificationPortNameFormat "NIHWS%04x%04dNotification"
-#define kAgentRequestPortNameFormat "NIHWS%04x%04dRequest"
 #define kMikroRequestPortNameFormat "NIHWMaschineMikroMK2-%s%04dRequest"
 #define kAgentRequestPortNameLen 21
 #define kInitMsgUid 40
@@ -13,6 +14,8 @@ uint32_t gSerialNonce = 54806784;
 uint32_t gSpecialEndNonce = 54749011;
 uint32_t gStartNonce = 54739712;
 uint16_t gPortUids[kNumHandshakeIter] = {0x1300, 0x1140, 0x808, 0x1200, 0x1110, 0x1350, 0x1500, 0x1200};
+
+char gStopAfterSerial = 0;
 
 CFMessagePortRef
 waitForRequestPort(char *name)
@@ -185,6 +188,12 @@ doHandshake(char *serial)
     for (i=0; i<kNumHandshakeIter; i++) {
         performHandshakeIteration(gPortUids[i], msgUid, i);
         if (i != kNumHandshakeIter-3) ++msgUid;
+
+		if (gStopAfterSerial && gReceivedSerial) {
+			strncpy(serial, gSerialNum, kSerialNumberLen);
+			serial[kSerialNumberLen-1] = 0;
+			return NULL;
+		}
     }
 
     reqPort = getRequestPort(0, msgUid-1, i-1);

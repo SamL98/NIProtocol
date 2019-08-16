@@ -1,6 +1,5 @@
 #include <nimessenger.h>
 #include <ninotifier.h>
-#include "callbacks.h"
 
 #define kSerialNumberPacketDataLen 25
 
@@ -20,8 +19,8 @@ createNotificationPort(const char *name,
 
     ctx.version = 0;
     ctx.info = info;
-    ctx.retain = CFRetain;
-    ctx.release = CFRelease;
+    ctx.retain = NULL;//CFRetain;
+    ctx.release = NULL;//CFRelease;
     ctx.copyDescription = NULL;
 
     port = CFMessagePortCreateLocal(kCFAllocatorDefault,
@@ -34,6 +33,32 @@ createNotificationPort(const char *name,
         free(info);
 
     return port;
+}
+
+CFDataRef
+bootstrap_notif_port_callback(CFMessagePortRef local, 
+                              SInt32 msgid, 
+                              CFDataRef data, 
+                              void *info)
+{
+    CFMessagePortRef reqPort;
+
+    if (!data || !CFDataGetBytePtr(data)) {
+        printf("No data from hardware agent\n");
+        return NULL;
+    }
+
+    if (!info) {
+        printf("No info in bootstrap notif port callback\n");
+        return NULL;
+    }
+
+    reqPort = (CFMessagePortRef)info;
+    sendMsg(reqPort, 
+            (uint8_t *)CFDataGetBytePtr(data), 
+            (size_t)CFDataGetLength(data));
+
+    return NULL;
 }
 
 CFDataRef

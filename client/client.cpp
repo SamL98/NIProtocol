@@ -24,7 +24,7 @@ int main(int argc, const char * argv[]) {
     CFMessagePortRef reqPort,
                      notifPort;
 
-    if (!(reqPort = doHandshake())) {
+    if (!(reqPort = doHandshake(NULL))) {
         printf("Couldn't obtain request port from handshake\n");
         return 1;
     }

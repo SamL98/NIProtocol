@@ -1,6 +1,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 
 #define kMainPortName "NIHWMainHandler"
+#define kSLBootstrapPortName "SLHWMainHandler"
 #define kMikroNotificationPortNameFormat "NIHWMaschineMikroMK2-%s%04dNotification"
 #define kNim2 0x4e694d32
 #define kPrmy 0x70726d79
@@ -8,6 +9,7 @@
 #define kStrt 0x73747274
 #define kSerialNumberLen 9
 #define kAgentNotificationPortNameLen 26
+#define kAgentRequestPortNameLen 21
 #define kMikroNotificationPortNameLen 46
 #define kMikroRequestPortNameLen 41
 #define kNewProjLen 12
@@ -17,6 +19,9 @@
 #define kButtonDataLen 78
 #define kPadButtonLen 48
 #define kPadButtonOffset 30
+
+extern char gReceivedSerial;
+extern char gSerialNum[kSerialNumberLen];
 
 typedef struct {
     uint32_t nonce;
