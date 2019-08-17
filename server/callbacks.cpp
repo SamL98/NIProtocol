@@ -11,6 +11,7 @@
 uint16_t gMsgUid = 40;
 uint32_t gSerialNonce = 54808107;
 uint32_t gCmdNonce = 54808064;
+CFMessagePortRef gM2NotifPort = NULL;
 
 CFMessagePortRef
 createRequestPort(const char *name, 
@@ -165,6 +166,7 @@ bootstrap_req_port_callback(CFMessagePortRef local,
 	switch (dataLen) {
 		case sizeof(nonce_msg_t): return handleNonceMsg(dataPtr, dataLen);
 		case sizeof(port_uid_msg_t): return handleUidMsg(dataPtr, dataLen);
+		case sizeof(mk_serial_msg_t): return handleUidMsg(dataPtr, dataLen);
 		default:
 			printf("Don't know how to handle %lu bytes of data\n", dataLen);
 			return NULL;
@@ -219,15 +221,17 @@ req_port_callback(CFMessagePortRef local,
 		cmd_msg_t		   cmd_msg;
 
 		mk_port_name_msg = *(mk_port_name_msg_t *)dataPtr;
-		if (!(notifPort = getBootstrapPort(mk_port_name_msg.name))) {
+		if (!(gM2NotifPort = getBootstrapPort(mk_port_name_msg.name))) {
 			printf("Couldn't get mk notification port from name: %s\n", mk_port_name_msg.name);
 			return NULL;
 		}
 
+		printf("Obtained reference to notification port: %s\n", mk_port_name_msg.name);
+
 		cmd_msg.nonce = gCmdNonce;
 		cmd_msg.cmd = kTrue;
 
-		sendMsg(notifPort, (uint8_t*)&cmd_msg, sizeof(cmd_msg));
+		sendMsg(gM2NotifPort, (uint8_t*)&cmd_msg, sizeof(cmd_msg));
 	}
     
     return handleNameMsg(dataPtr, dataLen);

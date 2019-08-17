@@ -30,6 +30,8 @@ typedef struct {
 	uint32_t trueStr;
 } port_name_response_t;
 
+extern CFMessagePortRef gM2NotifPort;
+
 CFMessagePortRef createRequestPort(const char *name, CFMessagePortCallBack callout, void *info);
 CFDataRef bootstrap_req_port_callback(CFMessagePortRef local, SInt32 msgid, CFDataRef data, void *info);
 CFDataRef req_port_callback(CFMessagePortRef local, SInt32 msgid, CFDataRef data, void *info);

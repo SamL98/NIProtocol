@@ -9,10 +9,9 @@
 #include <netinet/in.h>
 #include "callbacks.h"
 
+#define kMaxPacketLen 28
 #define kM2NotifPortMsgUid 46
 #define kListenPort "6969"
-
-CFMessagePortRef gM2NotifPort = NULL;
 
 void packet_received(CFSocketRef s,
 					 CFSocketCallBackType callbackType,
@@ -20,9 +19,12 @@ void packet_received(CFSocketRef s,
 					 void *data,
 					 void *info)
 {
-	CFDataRef packet;
-	uint8_t   *packetPtr;
-	size_t	  packetLen;
+	//CFDataRef packet;
+	struct 	  sockaddr_storage sa;
+	socklen_t sasize = sizeof(sa);
+	char	  packet[kMaxPacketLen];
+	int	  	  packetLen,
+			  new_fd;
 	mk2_msg	  msg;
 
 	if (!gM2NotifPort) {
@@ -30,22 +32,30 @@ void packet_received(CFSocketRef s,
 		return;
 	}
 
-	packet = (CFDataRef)data;
-	if (!packet || !(packetPtr = (uint8_t *)CFDataGetBytePtr(packet))) {
-		printf("Null data from packet receive\n");
+	if ((new_fd = accept(CFSocketGetNative(s), (struct sockaddr *)&sa, &sasize)) < 0) {
+		printf("Couldn't accept\n");
 		return;
 	}
 
-	packetLen = CFDataGetLength(packet);
-	if (parse_packet((char *)packetPtr,
-					 packetLen,
+	if ((packetLen = recv(new_fd, packet, kMaxPacketLen, 0)) <= 0) {
+		printf("Bad bytes read from recv: %d\n", packetLen);
+		return;
+	}
+
+	if (packetLen < 24) {
+		printf("Packet of length %d is too short\n", packetLen);
+		return;
+	}
+
+	if (parse_packet(packet,
+					 (size_t)packetLen,
 					 &msg)) {
 		printf("Couldn't parse packet\n");
 		return;
 	}
 
 	display_msg(msg);
-	sendMsg(gM2NotifPort, packetPtr, packetLen);
+	sendMsg(gM2NotifPort, (uint8_t *)packet, packetLen);
 }
 
 CFSocketRef create_cfsocket()
@@ -78,7 +88,7 @@ CFSocketRef create_cfsocket()
 
 	cfsock = CFSocketCreateWithNative(kCFAllocatorDefault,
 									  sockfd,
-									  kCFSocketDataCallBack,
+									  kCFSocketReadCallBack,//kCFSocketDataCallBack,
 									  (CFSocketCallBack)packet_received,
 									  NULL);
 
@@ -132,7 +142,7 @@ int main(int argc, const char * argv[]) {
 			return 1;
 		}
 
-		printf("Obtained reference to port: %s\n", m2NotifPortName);
+		printf("Obtained reference to notification port: %s\n", m2NotifPortName);
 	}
 	else {
 		printf("Hardware agent not running\n");
