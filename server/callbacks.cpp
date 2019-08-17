@@ -233,6 +233,26 @@ req_port_callback(CFMessagePortRef local,
 
 		sendMsg(gM2NotifPort, (uint8_t*)&cmd_msg, sizeof(cmd_msg));
 	}
+	else if (dataLen == sizeof(cmd_msg_t)) {
+		if (!gM2NotifPort)
+			return NULL;
+
+		cmd_msg_t recv_cmd_msg;
+		cmd_msg_t send_cmd_msg;
+
+		recv_cmd_msg = *(cmd_msg_t *)dataPtr;
+		if (recv_cmd_msg.cmd != kStrt)
+			return NULL;
+
+		send_cmd_msg.nonce = 54742528;
+		send_cmd_msg.cmd = kTrue;
+
+		sendMsg(gM2NotifPort, (uint8_t*)&send_cmd_msg, sizeof(send_cmd_msg));
+	}
+	else {
+		printf("Don't know how to handle %lu bytes\n", dataLen);
+		return NULL;
+	}
     
     return handleNameMsg(dataPtr, dataLen);
 }

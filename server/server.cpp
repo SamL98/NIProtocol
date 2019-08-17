@@ -23,7 +23,10 @@ void conn_read_callback(CFSocketRef s,
 	int	  	  packetLen;
 	mk2_msg	  msg;
 
-	if ((packetLen = recv(CFSocketGetNative(s), packet, kMaxPacketLen, 0)) <= 0) 
+	if ((packetLen = recv(CFSocketGetNative(s), 
+						  packet, 
+						  kMaxPacketLen, 
+						  0)) <= 0) 
 	{
 		if (packetLen == 0) {
 			CFSocketInvalidate(s);
@@ -65,7 +68,9 @@ void conn_accept_callback(CFSocketRef s,
 		return;
 	}
 
-	if ((new_fd = accept(CFSocketGetNative(s), (struct sockaddr *)&sa, &sasize)) < 0) {
+	if ((new_fd = accept(CFSocketGetNative(s), 
+						 (struct sockaddr *)&sa, 
+						 &sasize)) < 0) {
 		printf("Couldn't accept\n");
 		return;
 	}
