@@ -13,32 +13,22 @@
 #define kM2NotifPortMsgUid 46
 #define kListenPort "6969"
 
-void packet_received(CFSocketRef s,
-					 CFSocketCallBackType callbackType,
-					 CFDataRef address,
-					 void *data,
-					 void *info)
+void conn_read_callback(CFSocketRef s,
+						CFSocketCallBackType callbackType,
+						CFDataRef address,
+						void *data,
+						void *info)
 {
-	//CFDataRef packet;
-	struct 	  sockaddr_storage sa;
-	socklen_t sasize = sizeof(sa);
 	char	  packet[kMaxPacketLen];
-	int	  	  packetLen,
-			  new_fd;
+	int	  	  packetLen;
 	mk2_msg	  msg;
 
-	if (!gM2NotifPort) {
-		printf("Null M2 notification port\n");
-		return;
-	}
-
-	if ((new_fd = accept(CFSocketGetNative(s), (struct sockaddr *)&sa, &sasize)) < 0) {
-		printf("Couldn't accept\n");
-		return;
-	}
-
-	if ((packetLen = recv(new_fd, packet, kMaxPacketLen, 0)) <= 0) {
-		printf("Bad bytes read from recv: %d\n", packetLen);
+	if ((packetLen = recv(CFSocketGetNative(s), packet, kMaxPacketLen, 0)) <= 0) 
+	{
+		if (packetLen == 0) {
+			CFSocketInvalidate(s);
+			CFRelease(s);
+		}
 		return;
 	}
 
@@ -56,6 +46,47 @@ void packet_received(CFSocketRef s,
 
 	display_msg(msg);
 	sendMsg(gM2NotifPort, (uint8_t *)packet, packetLen);
+}
+
+void conn_accept_callback(CFSocketRef s,
+					 	  CFSocketCallBackType callbackType,
+					 	  CFDataRef address,
+					 	  void *data,
+					 	  void *info)
+{
+	struct sockaddr_storage sa;
+	CFRunLoopSourceRef 		cfRunLoopSrc;
+	CFSocketRef 	   		cfsock;
+	socklen_t 				sasize = sizeof(sa);
+	int	  	  				new_fd;
+
+	if (!gM2NotifPort) {
+		printf("Null M2 notification port\n");
+		return;
+	}
+
+	if ((new_fd = accept(CFSocketGetNative(s), (struct sockaddr *)&sa, &sasize)) < 0) {
+		printf("Couldn't accept\n");
+		return;
+	}
+
+	cfsock = CFSocketCreateWithNative(kCFAllocatorDefault,
+									  new_fd,
+									  kCFSocketReadCallBack,
+									  (CFSocketCallBack)conn_read_callback,
+									  NULL);
+
+	if (!(cfRunLoopSrc = CFSocketCreateRunLoopSource(kCFAllocatorDefault,
+													 cfsock,
+													 0))) {
+		printf("Couldn't create a run loop source for the socket\n");
+		CFRelease(cfsock);
+		return;
+	}
+
+	CFRunLoopAddSource(CFRunLoopGetCurrent(),
+					   cfRunLoopSrc,
+					   kCFRunLoopDefaultMode);
 }
 
 CFSocketRef create_cfsocket()
@@ -89,7 +120,7 @@ CFSocketRef create_cfsocket()
 	cfsock = CFSocketCreateWithNative(kCFAllocatorDefault,
 									  sockfd,
 									  kCFSocketReadCallBack,//kCFSocketDataCallBack,
-									  (CFSocketCallBack)packet_received,
+									  (CFSocketCallBack)conn_accept_callback,
 									  NULL);
 
 ret:
@@ -165,8 +196,7 @@ int main(int argc, const char * argv[]) {
 
 	if (!(cfRunLoopSrc = CFSocketCreateRunLoopSource(kCFAllocatorDefault,
 													 cfsock,
-													 0)))
-	{
+													 0))) {
 		printf("Couldn't create a run loop source for the socket\n");
 		retval = 1;
 		goto release_sock;
