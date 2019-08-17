@@ -72,8 +72,6 @@ handleUidMsg(uint8_t *dataPtr, size_t dataLen)
 
 	port_uid_msg = *(port_uid_msg_t *)dataPtr;
 
-	printf("uid: %x\n", port_uid_msg.uid);
-
 	// Account for the weird 3rd to last handshake iteration
 	if (port_uid_msg.uid == 0x1350)
 		return NULL;
@@ -93,9 +91,9 @@ handleUidMsg(uint8_t *dataPtr, size_t dataLen)
 
 		response_st.trueStr = kTrue;
 		response_st.reqPortNameLen = kMikroRequestPortNameLen;
-		strncpy(response_st.reqPortName, reqPortName, kMikroRequestPortNameLen-1);
+		strncpy(response_st.reqPortName, reqPortName, kMikroRequestPortNameLen);
 		response_st.notifPortNameLen = kMikroNotificationPortNameLen;
-		strncpy(response_st.notifPortName, notifPortName, kMikroNotificationPortNameLen-1);
+		strncpy(response_st.notifPortName, notifPortName, kMikroNotificationPortNameLen);
 		response_st.unk = 0;
 
 		response = (uint8_t *)&response_st;
@@ -112,9 +110,9 @@ handleUidMsg(uint8_t *dataPtr, size_t dataLen)
 
 		response_st.trueStr = kTrue;
 		response_st.reqPortNameLen = kAgentRequestPortNameLen;
-		strncpy(response_st.reqPortName, reqPortName, kAgentRequestPortNameLen-1);
+		strncpy(response_st.reqPortName, reqPortName, kAgentRequestPortNameLen);
 		response_st.notifPortNameLen = kAgentNotificationPortNameLen;
-		strncpy(response_st.notifPortName, notifPortName, kAgentNotificationPortNameLen-1);
+		strncpy(response_st.notifPortName, notifPortName, kAgentNotificationPortNameLen);
 		response_st.unk = 0;
 
 		response = (uint8_t *)&response_st;
@@ -179,8 +177,6 @@ req_port_callback(CFMessagePortRef local,
                   CFDataRef data,
                   void *info)
 {
-	printf("req port\n");
-
     uint8_t *dataPtr;
 	size_t  dataLen;
 
@@ -190,7 +186,6 @@ req_port_callback(CFMessagePortRef local,
     }
 
 	dataLen = CFDataGetLength(data);
-	printf("%lu, %lu\n", dataLen, sizeof(port_name_msg_t));
 
 	if (dataLen == sizeof(port_name_msg_t)) 
 	{
@@ -198,15 +193,15 @@ req_port_callback(CFMessagePortRef local,
 		serial_num_msg_t serial_num_msg;
 		port_name_msg_t  port_name_msg;
 		
-		port_name_msg = *(port_name_msg_t *)data;
-		printf("%s\n", port_name_msg.name);
+		port_name_msg = *(port_name_msg_t *)dataPtr;
+
 		if (!strcmp(port_name_msg.name, "NIHWS12000043Notification")) 
 		{
 			serial_num_msg.nonce = gSerialNonce;
 			serial_num_msg.unk = 0;
 			serial_num_msg.port_uid = 0x1200;
 			serial_num_msg.len = 9;
-			strncpy(serial_num_msg.num, "88CC589C", kSerialNumberLen-1);
+			strncpy(serial_num_msg.num, "88CC589C", kSerialNumberLen);
 			serial_num_msg.num[kSerialNumberLen-1] = 0;
 
 			if (!(notifPort = getBootstrapPort(port_name_msg.name))) {
@@ -223,7 +218,7 @@ req_port_callback(CFMessagePortRef local,
 		mk_port_name_msg_t mk_port_name_msg;
 		cmd_msg_t		   cmd_msg;
 
-		mk_port_name_msg = *(mk_port_name_msg_t *)data;
+		mk_port_name_msg = *(mk_port_name_msg_t *)dataPtr;
 		if (!(notifPort = getBootstrapPort(mk_port_name_msg.name))) {
 			printf("Couldn't get mk notification port from name: %s\n", mk_port_name_msg.name);
 			return NULL;

@@ -1,7 +1,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 
-#define kNonceResponseUnk1 0x202000
-#define kNonceResponseUnk2 0x30
+#define kNonceResponseUnk1 0x20200
+#define kNonceResponseUnk2 0x3
 
 typedef struct {
 	uint32_t unk1;
