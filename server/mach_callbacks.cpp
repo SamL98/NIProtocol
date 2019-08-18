@@ -1,7 +1,7 @@
 #include <nimessenger.h>
 #include <ninotifier.h>
 #include <nihandshaker.h>
-#include "callbacks.h"
+#include "mach_callbacks.h"
 
 #define kAgentNotificationPortNameFormat "NIHWS%04x%04dNotification"
 #define kMikroNotificationPortNameFormat "NIHWMaschineMikroMK2-%s%04dNotification"

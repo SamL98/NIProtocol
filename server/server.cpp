@@ -1,121 +1,49 @@
 #include <CoreFoundation/CoreFoundation.h>
-#include <niparser.h>
+#include <CFNetwork/CFNetwork.h>
 #include <nimessenger.h>
 #include <nihandshaker.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include "callbacks.h"
+#include "mach_callbacks.h"
+#include "sock_callbacks.h"
+#include "bonjour_callbacks.h"
 
-#define kMaxPacketLen 28
 #define kM2NotifPortMsgUid 46
 #define kListenPort "6969"
 
-void conn_read_callback(CFSocketRef s,
-						CFSocketCallBackType callbackType,
-						CFDataRef address,
-						void *data,
-						void *info)
+CFSocketRef 
+create_cfsocket()
 {
-	char	  packet[kMaxPacketLen];
-	int	  	  packetLen;
-	mk2_msg	  msg;
-
-	if ((packetLen = recv(CFSocketGetNative(s), 
-						  packet, 
-						  kMaxPacketLen, 
-						  0)) <= 0) 
-	{
-		if (packetLen == 0) {
-			CFSocketInvalidate(s);
-			CFRelease(s);
-		}
-		return;
-	}
-
-	if (packetLen < 24) {
-		printf("Packet of length %d is too short\n", packetLen);
-		return;
-	}
-
-	if (parse_packet(packet,
-					 (size_t)packetLen,
-					 &msg)) {
-		printf("Couldn't parse packet\n");
-		return;
-	}
-
-	display_msg(msg);
-	sendMsg(gM2NotifPort, (uint8_t *)packet, packetLen);
-}
-
-void conn_accept_callback(CFSocketRef s,
-					 	  CFSocketCallBackType callbackType,
-					 	  CFDataRef address,
-					 	  void *data,
-					 	  void *info)
-{
-	struct sockaddr_storage sa;
-	CFRunLoopSourceRef 		cfRunLoopSrc;
-	CFSocketRef 	   		cfsock;
-	socklen_t 				sasize = sizeof(sa);
-	int	  	  				new_fd;
-
-	if (!gM2NotifPort) {
-		printf("Null M2 notification port\n");
-		return;
-	}
-
-	if ((new_fd = accept(CFSocketGetNative(s), 
-						 (struct sockaddr *)&sa, 
-						 &sasize)) < 0) {
-		printf("Couldn't accept\n");
-		return;
-	}
-
-	cfsock = CFSocketCreateWithNative(kCFAllocatorDefault,
-									  new_fd,
-									  kCFSocketReadCallBack,
-									  (CFSocketCallBack)conn_read_callback,
-									  NULL);
-
-	if (!(cfRunLoopSrc = CFSocketCreateRunLoopSource(kCFAllocatorDefault,
-													 cfsock,
-													 0))) {
-		printf("Couldn't create a run loop source for the socket\n");
-		CFRelease(cfsock);
-		return;
-	}
-
-	CFRunLoopAddSource(CFRunLoopGetCurrent(),
-					   cfRunLoopSrc,
-					   kCFRunLoopDefaultMode);
-}
-
-CFSocketRef create_cfsocket()
-{
-	CFSocketRef cfsock = NULL;
-	struct addrinfo hints, *res;
-	int sockfd, status;
+	CFSocketRef 	cfsock = NULL;
+	struct addrinfo hints, 
+					*res;
+	int 			sockfd, 
+					status;
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if ((status = getaddrinfo(NULL, kListenPort, &hints, &res))) {
+	if ((status = getaddrinfo(NULL, 
+							  kListenPort, 
+							  &hints, 
+							  &res))) {
 		printf("Couldn't get addr info: %s\n", gai_strerror(status));
 		return NULL;
 	}
 
-	if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
+	if ((sockfd = socket(res->ai_family, 
+						 res->ai_socktype, 
+						 res->ai_protocol)) < 0) {
 		printf("Couldn't get valid socket fd\n");
 		goto ret;
 	}
 
-	if ((status = bind(sockfd, res->ai_addr, res->ai_addrlen)) < 0) {
+	if ((status = bind(sockfd, 
+					   res->ai_addr, 
+					   res->ai_addrlen)) < 0) {
 		printf("Couldn't bind socket to port: %s\n", kListenPort);
 		goto ret;
 	}
@@ -142,9 +70,49 @@ get_serial(char *serial)
 	return strlen(serial) == kSerialNumberLen-1;
 }
 
+CFNetServiceRef
+create_netservice(int port, CFNetServiceClientCallBack callback)
+{
+	CFNetServiceClientContext ctx;
+	CFNetServiceRef 		  cfnetservice;
+	CFStreamError			  error;
+
+	cfnetservice = CFNetServiceCreate(NULL,
+									  CFSTR("local."),
+							  		  CFSTR("_freehand._tcp"),
+							  		  CFSTR("M2"),
+							  		  port);
+
+	ctx.version = 0;
+	ctx.info = NULL;
+	ctx.retain = NULL;
+	ctx.release = NULL;
+	ctx.copyDescription = NULL;
+	CFNetServiceSetClient(cfnetservice, callback, &ctx);
+
+	CFNetServiceScheduleWithRunLoop(cfnetservice,
+									CFRunLoopGetCurrent(),
+									kCFRunLoopDefaultMode);
+
+	if (!CFNetServiceRegisterWithOptions(cfnetservice,
+										 0,
+										 &error)) 
+	{
+		CFNetServiceUnscheduleFromRunLoop(cfnetservice,
+										  CFRunLoopGetCurrent(),
+										  kCFRunLoopDefaultMode);
+										
+		CFRelease(cfnetservice);
+		cfnetservice = NULL;
+	}
+
+	return cfnetservice;
+}
+
 int main(int argc, const char * argv[]) {
 	CFRunLoopSourceRef cfRunLoopSrc;
 	CFSocketRef 	   cfsock;
+	CFNetServiceRef	   cfnetservice;
 	int				   retval = 0;
 
 	// If the port NIHWMainHandler is available, then that means the hardware agent is running.
@@ -210,6 +178,14 @@ int main(int argc, const char * argv[]) {
 	CFRunLoopAddSource(CFRunLoopGetCurrent(),
 					   cfRunLoopSrc,
 					   kCFRunLoopDefaultMode);
+
+	if (!(cfnetservice = create_netservice(atoi(kListenPort),
+										   (CFNetServiceClientCallBack)register_callback))) {
+		printf("Couldn't create cfnetservice\n");
+		retval = 1;
+		goto release_rlsrc;
+	}
+
     CFRunLoopRun();
 
 release_rlsrc:
