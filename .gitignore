@@ -1,5 +1,6 @@
 .*.swp
 *.ipynb
+/hahooks/
 HookCase/
 NIClient/
 NIIPC
