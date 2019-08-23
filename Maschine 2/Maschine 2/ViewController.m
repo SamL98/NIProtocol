@@ -29,6 +29,26 @@ connect_callback(CFNetServiceRef service,
 
 @implementation ViewController
 
+- (void)enablePads:(BOOL)enabled
+{
+    size_t   i;
+    char     selName[6];
+    SEL      padSel;
+    UIButton *pad;
+    
+    for (i=1; i<16; i++) {
+        sprintf(selName, "pad%lu", i);
+        
+        if (i<10) selName[4] = 0;
+        else      selName[5] = 0;
+        
+        padSel = NSSelectorFromString([NSString stringWithCString:selName encoding:NSASCIIStringEncoding]);
+        
+        pad = (UIButton *)[self performSelector:padSel];
+        [pad setEnabled:enabled];
+    }
+}
+
 - (void)finishConnectionSetup:(CFNetServiceRef)service
 {
     SocketManager *sockman = [[SocketManager alloc] init];
@@ -43,14 +63,14 @@ connect_callback(CFNetServiceRef service,
     [self setMessman:[[MessageManager alloc] init:sockman]];
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[self pad1] setEnabled:YES];
+        [self enablePads:YES];
     });
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    [[self pad1] setEnabled:NO];
+    [self enablePads:NO];
     
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
         [[[BonjourManager alloc] init:@"local."
