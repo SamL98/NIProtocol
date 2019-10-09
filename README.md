@@ -19,9 +19,25 @@ When `m2client` is run, it will perform the handshake with the hardware agent an
 
 To perform the handshake (and build the client), multiple modules first need to be built:
 
-1. `niparser`: This module will parse the wheel or button packets from the hardware agent into structs. It can be built using the Makefile in the `parser` directory.
-2. `nimessenger`: This module sends the messages necessary for performing the handshake and interacting with the MK2 (such as setting button LED's) to the hardware agent. It can be built using the Makefile in the `messenger` directory.
-3. `ninotifier`: This module implements the functions necessary for program to register as a listener for incoming packets and for a program to broadcast a packet to any listening program. It can be built using the Makefile in the `notifier` directory.
-4. `nihandshaker`: This module contains the functionality to perform the handshake from the client side with the hardware agent. The previous three modules need to be built in order for this module to be built. It can be built using the Makefile in the `handshaker` directory.
+1. `niparser`: This module will parse the wheel or button packets from the hardware agent into structs.
+2. `nimessenger`: This module sends the messages necessary for performing the handshake and interacting with the MK2 (such as setting button LED's) to the hardware agent.
+3. `ninotifier`: This module implements the functions necessary for program to register as a listener for incoming packets and for a program to broadcast a packet to any listening program.
+4. `nihandshaker`: This module contains the functionality to perform the handshake from the client side with the hardware agent. The previous three modules need to be built in order for this module to be built.
+
+These can all be built using the `make_libs.sh` script or each can be built individually with the Makefile in its respective directory.
+
+Note that when each library is built, its header and compiled dylib will be copied into the `usr/local/include` and `usr/local/lib` directories respectively so that they can be included through system paths.
 
 After `m2client` performs the handshake, when a new packet is forwarded from the hardware agent, it will then be parsed into a structure and broadcast via a `CFNotification` to any listening program.
+
+### Listening to the notification
+
+Any program can use the `ninotifier` module to listen to the broadcasted packets. There is an example application in the `testapp` directory that registers itself as a listener and prints the pressed button or wheel action when a new packet is received.
+
+## Writing to Maschine 2
+
+The second part of this project is to act as the hardware agent and send packets to the Maschine 2 GUI. The `m2server` program (located in the `server` directory) will perform that task. The server program relies on the same four modules that the client is dependent on.
+
+`m2server` will also set up a TCP socket on port 6969 to listen for button commands from the `Maschine 2` iPhone application. It will then register a Bonjour service with name `M2` on this port. The `Maschine 2` application, when run, will connect to the published Bonjour service and connect to port 6969.
+
+Currently, pressure sensitivity is not available in the `Maschine 2` app since my phone does not support 3D Touch.

@@ -1,5 +1,5 @@
-#!/bin/zsh
-dirs=(parser messenger notifier handshaker client)
+#!/bin/sh
+dirs=(parser messenger notifier handshaker client server)
 prev_dir=$(pwd)
 
 for d in $dirs; do
