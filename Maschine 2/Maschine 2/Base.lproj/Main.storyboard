@@ -79,7 +79,7 @@
                                             <action selector="padTap:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ijT-JP-5Yk"/>
                                         </connections>
                                     </button>
-                                    <button opaque="NO" tag="7" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tqu-HL-6gO">
+                                    <button opaque="NO" tag="8" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tqu-HL-6gO">
                                         <rect key="frame" x="125" y="234" width="93" height="93"/>
                                         <color key="backgroundColor" red="0.81213727680000003" green="0.1645368304" blue="0.2182477679" alpha="1" colorSpace="calibratedRGB"/>
                                         <connections>
@@ -103,7 +103,7 @@
                                             <action selector="padTap:" destination="BYZ-38-t0r" eventType="touchUpInside" id="15W-vA-FEw"/>
                                         </connections>
                                     </button>
-                                    <button opaque="NO" tag="6" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="zCu-tG-6ay">
+                                    <button opaque="NO" tag="5" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="zCu-tG-6ay">
                                         <rect key="frame" x="125" y="343" width="93" height="93"/>
                                         <color key="backgroundColor" red="0.81213727680000003" green="0.1645368304" blue="0.2182477679" alpha="1" colorSpace="calibratedRGB"/>
                                         <connections>
