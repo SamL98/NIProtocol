@@ -5,6 +5,8 @@ This repository contains the code necessary to do two things:
 1. Read button/wheel input from the Native Instruments Maschine Mikro 2.
 2. Send button input from an iPhone to the Native Instruments Maschine 2 application.
 
+For more information on the project, see the linked blog post: [https://medium.com/@lerner98/rage-against-the-maschine-3357be1abc48]
+
 NOTE: All of the code is written for MacOS. Significant changes will be needed for this code to work on other operating systems.
 
 ## Reading the MK2
